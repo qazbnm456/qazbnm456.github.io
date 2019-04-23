@@ -1,0 +1,9 @@
+Please input any: <input type="text" id="input" />
+<script>
+    onkeydown=function(){
+        window.open('//example.com','_blank','test');
+    }
+    document.getElementById("input").addEventListener('beforeinput', function(){
+        window.open('about:blank','_blank').close();
+    });
+</script>
