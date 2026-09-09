@@ -1,0 +1,4023 @@
+/* rlm-notebook web UI — visual spec lives in DESIGN.md. Two first-class themes, Paper (light,
+   default) and Study (dark) — both computed from the same OKLCH hue family (75 warm neutral, 55
+   copper accent, 260 ink / 75 cream text, 165 studio calm) so switching themes reads as one brand
+   in two lightings, not two unrelated palettes. Values here are the source of truth; DESIGN.md's
+   copies are design intent, not the live tokens. */
+
+:root,
+:root[data-theme="light"] {
+  --bg: oklch(97.5% 0.012 75);
+  --surface-1: oklch(95% 0.012 75);
+  --surface-2: oklch(92% 0.014 75);
+  --surface-3: oklch(89% 0.016 75);
+  --border: oklch(85% 0.02 75);
+  --border-strong: oklch(75% 0.025 75);
+
+  --text: oklch(22% 0.02 260);
+  --text-dim: oklch(42% 0.02 260);
+  --text-faint: oklch(46% 0.018 260);
+
+  --accent: oklch(62% 0.16 55);
+  --accent-dim: oklch(70% 0.13 55);
+  --highlight-wash: oklch(88% 0.09 75);
+  --highlight-border: oklch(62% 0.16 55);
+
+  --studio-accent: oklch(55% 0.05 165);
+
+  --ok: oklch(60% 0.14 145);
+  --warn: oklch(70% 0.15 80);
+  --bad: oklch(55% 0.18 25);
+
+  --radius: 6px;
+  --radius-lg: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(20% 0.015 55);
+    --surface-1: oklch(24% 0.016 55);
+    --surface-2: oklch(28% 0.018 55);
+    --surface-3: oklch(32% 0.02 55);
+    --border: oklch(38% 0.02 55);
+    --border-strong: oklch(48% 0.022 55);
+
+    --text: oklch(93% 0.015 75);
+    --text-dim: oklch(75% 0.015 75);
+    --text-faint: oklch(70% 0.012 75);
+
+    --accent: oklch(75% 0.15 55);
+    --accent-dim: oklch(65% 0.13 55);
+    --highlight-wash: oklch(50% 0.08 70 / 0.65);
+    --highlight-border: oklch(75% 0.15 55);
+
+    --studio-accent: oklch(68% 0.06 165);
+
+    --ok: oklch(68% 0.15 145);
+    --warn: oklch(75% 0.15 80);
+    --bad: oklch(65% 0.18 25);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: oklch(20% 0.015 55);
+  --surface-1: oklch(24% 0.016 55);
+  --surface-2: oklch(28% 0.018 55);
+  --surface-3: oklch(32% 0.02 55);
+  --border: oklch(38% 0.02 55);
+  --border-strong: oklch(48% 0.022 55);
+
+  --text: oklch(93% 0.015 75);
+  --text-dim: oklch(75% 0.015 75);
+  --text-faint: oklch(70% 0.012 75);
+
+  --accent: oklch(75% 0.15 55);
+  --accent-dim: oklch(65% 0.13 55);
+  --highlight-wash: oklch(50% 0.08 70 / 0.65);
+  --highlight-border: oklch(75% 0.15 55);
+
+  --studio-accent: oklch(68% 0.06 165);
+
+  --ok: oklch(68% 0.15 145);
+  --warn: oklch(75% 0.15 80);
+  --bad: oklch(65% 0.18 25);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    "Public Sans",
+    ui-sans-serif,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Literata is reserved for content meant to be READ at length — the full source-text viewer,
+   still unbuilt as of Phase 3. Guide/podcast content deliberately did NOT switch to it in Phase 2
+   (reused renderAnswerWithCitations's existing Public Sans treatment instead, for consistency with
+   Chat — see rlm_notebook/web/DESIGN.md's typography section) — this class stays unused until a
+   dedicated long-form reading surface exists. */
+.reading-face {
+  font-family: "Literata", ui-serif, Georgia, serif;
+}
+
+/* JetBrains Mono — the one deliberate callback to the sibling studios' technical identity, used by
+   the reasoning-trace pill (.ticker-toggle), which extends this class rather than repeating the
+   font stack. (It also styled the citation-turn detail payload, until the References view replaced
+   that panel, and `.ticker-detail`, until the pill stopped expanding inline and started opening the
+   Trajectory drawer.) */
+.trace-face {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+textarea,
+input {
+  font: inherit;
+  color: inherit;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5em 0.7em;
+}
+
+textarea:focus,
+input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in oklch, var(--accent) 24%, transparent);
+}
+
+/* `.btn` has to work on an <a> as well as a <button>. The global reset covers `button` only, so an
+   anchor carrying this class kept the UA's blue-and-underlined link styling and read as unstyled
+   text on the dark theme — reported from a screenshot of the podcast download link. */
+.btn {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.5em 1em;
+  cursor: pointer;
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* `.btn` carries an author `display` (inline-block, so an `<a class="btn">` takes vertical padding
+   like the `<button>`s do), and an author `display` outranks the UA's `[hidden] { display: none }`.
+   No `.btn` element is hidden-toggled today, but this is the most-used class in the file, so the
+   pairing is declared up front rather than left for whoever adds the first one to debug
+   (invariant 36 — the exact bug that blanked the whole UI once already). */
+.btn[hidden] {
+  display: none;
+}
+
+.btn:hover {
+  border-color: var(--accent-dim);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+}
+
+/* EVERY disabled button, not just the primary one. `setPhase({stoppable:false})` produced a Stop
+   that was pixel-identical to a live one — same colour, same background, same pointer cursor — so
+   the page invited a click it then swallowed. Measured by an independent review. */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* `backdrop-filter` CREATES A STACKING CONTEXT. Without a z-index of its own the header then sits
+   in normal flow, and the columns — later in the DOM — paint over everything inside it, including
+   the notebook menu's `z-index: 70`, which only ever meant "70 within the header". A user's
+   screenshot showed the open picker sandwiched between the source cards and the chat panel. The
+   header needs its own layer, above the columns and below the modals (1000). */
+.header {
+  position: relative;
+  z-index: 100;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 56px;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklch, var(--bg) 92%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+/* A real <button> since it starts a new notebook, so it needs the chrome reset every other button
+   here gets from .btn/.tab/.theme-toggle — the global `button` rule only resets font and color, so
+   without this the brand paints as a grey beveled ButtonFace box with cursor: default (i.e. not
+   even reading as clickable). Caught by an independent review, not by looking at it. */
+.wordmark {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* The notebook's human name. The id is a handle the user never has to invent or read; this is what
+   they actually recognise the notebook by. No `display` rule, deliberately — it is `hidden`-toggled,
+   and tests/test_web_assets.py fails the build if such a class ever gains one without a matching
+   [hidden] rule. */
+.notebook-title {
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 22ch;
+}
+
+.notebook-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  max-width: 420px;
+}
+
+.notebook-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ONE element owns the push-right. Both header buttons carried `margin-left: auto` when the
+   settings button was added by reusing `.theme-toggle`'s class, which left them oddly placed —
+   reported by a user. */
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Two rounds of "still too small, still no hover effect" before the actual difference showed up in
+   one sibling studio: it is the RESTING state, not the hover rule and not the glyph size. Theirs is
+   square with a STRONG border on a raised surface, so it reads as a control before you touch it,
+   and the hover then has something to change. Ours was a 999px circle with the faintest border on
+   the flattest surface: barely a button at rest, so a colour shift on hover had almost no delta to
+   land against. Same shape as theirs now, in this project's own warm palette. */
+.header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.header-btn:hover,
+.header-btn:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface-1);
+}
+
+.header-btn:active {
+  transform: translateY(1px);
+}
+
+.cols {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  /* The reader's own width, dragged from the panel edge and remembered. */
+  grid-template-columns: 280px minmax(0, 1fr) var(--studio-width, 340px);
+  transition: grid-template-columns 180ms ease;
+}
+
+/* No transition WHILE dragging, or the panel lags a frame behind the cursor and the drag feels
+   like it is fighting back. */
+body.is-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.is-resizing .cols {
+  transition: none;
+}
+
+/* Collapsing has to narrow the TRACK, not the column's padding. Styling the column alone left it
+   340px wide with vertical labels standing in an empty field — the collapse did nothing except
+   hide the content it was supposed to make room for. `:has()` is what lets the grid react to a
+   class on its own child. */
+.cols:has(.col-studio.is-collapsed) {
+  /* `--studio-rail` is set only while a drag is pulling the rail open — see `initStudioRail`. */
+  grid-template-columns: 280px minmax(0, 1fr) var(--studio-rail, 2.9rem);
+}
+
+/* No animation for a reader who asked for none: the width change is the whole effect. */
+@media (prefers-reduced-motion: reduce) {
+  .cols { transition: none; }
+}
+
+.col {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.col-sources {
+  border-right: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+.col-chat {
+  background: var(--bg);
+}
+
+.col-studio {
+  border-left: 1px solid var(--border);
+  background: var(--surface-1);
+}
+
+/* Studio collapses to zero width when it has nothing to show yet — same discipline the sibling
+   studios already use for their meta column. Phase 1 leaves it visible with a placeholder note
+   rather than collapsing it, since collapsing-when-empty is Phase 2's concern once there is real
+   content to gate on. */
+
+.panel-head {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin-bottom: 0.75rem;
+}
+
+.empty-note {
+  color: var(--text-faint);
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+/* --- Sources panel --- */
+
+.add-source {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.tab {
+  flex: 1 1 auto;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.35em 0.5em;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+/* The treatment that belongs HERE rather than on the header icons: a gear and a moon explain
+   themselves, four Chinese words naming four kinds of generated artifact do not. The outline
+   lighting up is also what tells you the tab is hoverable at all, which is when the help appears. */
+.tab:hover:not(.is-active),
+.tab:focus-visible:not(.is-active) {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface-1);
+}
+
+.tab.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.tab-body textarea,
+.tab-body input {
+  width: 100%;
+}
+
+.source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.source-item {
+  position: relative;
+  /* NO `overflow: hidden` here. A tooltip is an `::after` on its host, so a clipping overflow
+     ANYWHERE up the chain erases it — this one silently killed the tips on the card itself and on
+     the ⚠ flags and ✕ remove controls inside it. Every child that needs clamping already clamps
+     itself (.src-title / .src-origin / .src-description), so this was pure cost. */
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  display: grid;
+  /* The remove control gets its own column so it can never be pushed below a wrapped URL, which is
+     what happened when this was a plain block and the button was simply appended. */
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.5em 0.7em;
+  font-size: 0.82rem;
+}
+
+.source-item > .src-kind,
+.source-item > .src-origin,
+.source-item > .src-flags {
+  grid-column: 1;
+}
+
+.src-remove {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: start;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: var(--radius);
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+/* Revealed on hover/focus, like the picker's rename pencil: a destructive control on every row,
+   always visible, turns a list of sources into a grid of buttons. */
+.source-item:hover .src-remove,
+.source-item:focus-within .src-remove {
+  opacity: 1;
+}
+
+.src-remove:hover {
+  color: var(--bad);
+  background: var(--surface-3, var(--surface-1));
+}
+
+.src-remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* The page's own title, when it gave us one — the row's identity, with the URL demoted beneath it.
+   Two lines maximum: a headline that runs to five lines is a paragraph, and the rail is 280px. */
+.source-item .src-title {
+  grid-column: 1;
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.source-item .src-origin {
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+/* Once a title is present the origin is supporting detail, so it steps back and stops wrapping
+   across four lines of percent-encoded path. */
+.source-item .src-title + .src-origin {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  word-break: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.source-item .src-description {
+  grid-column: 1;
+  margin-top: 0.25rem;
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.source-item .src-kind {
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--text-faint);
+}
+
+.source-item .src-flags {
+  color: var(--warn);
+  font-size: 0.75rem;
+}
+
+/* --- Chat panel --- */
+
+.chat-history {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+.turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.turn-question {
+  align-self: flex-end;
+  max-width: 80%;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-lg);
+  padding: 0.6em 0.9em;
+  font-weight: 600;
+}
+
+.turn-answer {
+  max-width: 85%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.7em 0.9em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.turn-answer.is-pending {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+/* The signature interaction: a citation is a highlighter stroke, not a footnote number. The
+   underline exists specifically because the wash's own luminance separation from an arbitrary
+   surface step is not reliably perceptible on its own — verified computationally in Study mode
+   over --surface-3 during the pre-implementation design audit; the border makes perceptibility not
+   depend on that luminance gap. */
+/* An UNDERLINE plus a small superscript number, not a filled wash.
+   The wash was designed for an answer with a few cited phrases in it. Now that the model marks the
+   span behind every claim (`answer_span`), a typical overview comes back with a citation on nearly
+   every sentence — and a page where almost everything is highlighted highlights nothing. It read as
+   a solid block of colour, which a user reported as crowded.
+   The underline keeps the "this is grounded" signal at any density; the number is what makes each
+   stroke traceable to its entry in the reference list. */
+.citation {
+  border-bottom: 2px solid var(--highlight-border);
+  padding-bottom: 0.05em;
+  cursor: default;
+  transition: background 120ms ease;
+}
+
+/* The wash comes back on HOVER, for one stroke at a time — which is when it is actually doing the
+   job it was designed for: showing the extent of this particular claim. */
+.citation:hover {
+  background: var(--highlight-wash);
+  border-radius: 2px;
+}
+
+.citation::after {
+  content: attr(data-reference);
+  margin-left: 0.15em;
+  vertical-align: super;
+  font-size: 0.62em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  /* Not selectable: the answer's own words must copy cleanly, without UI furniture in them. */
+  user-select: none;
+}
+
+/* The one being read in the reference list below, or hovered there. */
+/* The other half of `linkReference`: pointing at a reference row lights up every stroke it backs. */
+.citation.is-linked {
+  background: color-mix(in oklch, var(--accent) 22%, transparent);
+}
+
+/* Same split on the stroke: hover owns `background`, focus owns the underline. */
+.citation.is-focused {
+  background: var(--highlight-wash);
+  border-radius: 2px;
+}
+
+.citation.is-unverified {
+  border-bottom-style: dashed;
+  border-bottom-color: var(--bad);
+}
+
+.citation-clickable {
+  cursor: pointer;
+}
+
+.citation-clickable:hover {
+  filter: brightness(0.95);
+}
+
+/* Where the model read this citation's source (Phase 3) — a heuristic lookup, never a
+   faithfulness proof (see AGENTS.md invariant 5 and the citation-turn endpoint's own docstring).
+   One shared slot per answer, not one per citation, so clicking a different citation replaces the
+   previous detail rather than accumulating unboundedly. */
+.citation-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.citation-list .citation-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  cursor: pointer;
+  border-radius: var(--radius);
+  padding: 0.1em 0.3em;
+  margin: 0 -0.3em;
+}
+
+.citation-list .citation-row:hover {
+  background: var(--surface-3);
+}
+
+.citation-list .citation-row-label {
+  flex: 1 1 auto;
+}
+
+.citation-list .citation-row-trace {
+  flex: 0 0 auto;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 0.5em;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.citation-list .citation-row-trace:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-dim);
+}
+
+/* --- The ask composer -------------------------------------------------------------------------
+   The WHOLE BOX is the field. The textarea carries no chrome of its own — the form owns the border,
+   the background and the focus ring — and the keyboard hint sits on its own row inside that box,
+   underneath the text.
+
+   That row placement is the whole design problem the user named: an Enter affordance floating
+   inside the typing area collides with the text the moment a question is more than a few words. Put
+   it in its own row and the collision cannot happen at any length, which is exactly why Claude.ai,
+   ChatGPT and Slack all shape their composers this way rather than overlaying the control. */
+
+.ask-form {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.7rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--surface-2);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+/* NO ring, and no accent flash. The border is already there at rest, so the focus state brightens
+   it rather than drawing a new line around the box — which is what the ring read as. The hint row
+   below fading up is the other half of the signal, and between them focus is legible without
+   anything appearing that was not there a moment ago. */
+.ask-form:focus-within {
+  border-color: var(--text-faint);
+}
+
+.ask-form textarea {
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0.15rem 0.15rem 0.1rem;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.55;
+  /* Grows with the question up to a ceiling, then scrolls: a composer that grows without limit
+     eats the transcript it is meant to be adding to. */
+  min-height: 2.6rem;
+  max-height: 9rem;
+  resize: none;
+  overflow-y: auto;
+}
+
+/* The GLOBAL `textarea:focus` rule adds `border-color` and a `box-shadow` ring. `outline: none`
+   alone left the box-shadow, so the composer drew the textarea's ring INSIDE the form's ring — two
+   nested rounded rectangles, reported from a screenshot. All three have to be cleared, not just
+   the outline. */
+.ask-form textarea:focus {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ask-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ask-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  /* Recedes until the field is engaged: instructions you have already read are noise. */
+  opacity: 0.55;
+  transition: opacity 140ms ease;
+}
+
+.ask-form:focus-within .ask-hint {
+  opacity: 1;
+}
+
+.ask-hint-sep {
+  opacity: 0.5;
+}
+
+/* A dashed key cap, so it reads as "the key on your keyboard" rather than as a button to click. */
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  padding: 0.05rem 0.3rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 4px;
+  background: var(--surface-1);
+  font-family: inherit;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.ask-send {
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-1);
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+/* Filled only once there is something to send — an always-primary send button on an empty field
+   promises an action that does nothing. */
+.ask-form.has-text .ask-send {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.ask-send:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ask-form.has-text .ask-send:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: var(--bg);
+}
+
+.ask-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* --- Studio panel: Guide tabs --- */
+
+.guide-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.guide-regenerate {
+  width: 100%;
+  font-size: 0.78rem;
+  padding: 0.35em 0.5em;
+  margin-bottom: 0.75rem;
+}
+
+.guide-body {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.guide-body.is-pending {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.guide-prose {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.guide-item {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.6em 0.8em;
+  margin-bottom: 0.6rem;
+}
+
+.guide-item .guide-item-head {
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.guide-item .guide-item-when {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--studio-accent);
+  margin-bottom: 0.2rem;
+}
+
+/* --- Studio panel: podcast player --- */
+
+.podcast-section audio {
+  width: 100%;
+  margin: 0.6rem 0;
+}
+
+.podcast-body.is-pending {
+  color: var(--text-faint);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+/* The native player has no intrinsic width worth relying on in a 340px rail. */
+.podcast-body audio {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.podcast-download {
+  display: inline-block;
+  margin-top: 0.5rem;
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+/* --- Subtitle-style transcript --- */
+
+.podcast-timecode {
+  margin-left: 0.5rem;
+  padding: 0 0.35em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.podcast-timecode:hover {
+  opacity: 1;
+  border-color: var(--accent-dim);
+}
+
+.podcast-utterance.is-seekable {
+  cursor: pointer;
+  /* NO negative margins and no second padding. They date from when an utterance was bare text and
+     the hover needed to bleed past it; `.podcast-utterance` carries its own padding, background and
+     border now, so all they did was make every row wider than `.podcast-transcript.is-timed` — and
+     that box is `overflow-y: auto`, which computes `overflow-x` to `auto` as well, so the whole
+     transcript gained a horizontal scrollbar. Reported from a screenshot. */
+  /* Only background and border transition — a colour change on the TEXT would fight the citation
+     highlighter-stroke, which is this UI's signature interaction. Both are listed because hover
+     moves `border-color` (see below) while `.is-speaking` moves `background`. */
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+/* Deliberately NOT `background` and deliberately NOT more specific than `.is-speaking`: an
+   independent review found the first version set `--surface-2`, the colour `.podcast-utterance`
+   already carries (so hovering looked like nothing happened), and at specificity (0,3,0) it
+   outranked `.is-speaking` at (0,2,0) — hovering the line that was currently playing DELETED its
+   highlight. A border colour is a channel `.is-speaking` doesn't use, so the two compose. */
+.podcast-utterance.is-seekable:hover {
+  border-color: var(--accent-dim);
+}
+
+/* The line currently being spoken. A left rule plus a wash, deliberately NOT the citation
+   highlighter's colour — a reader must be able to tell "the model cited this" from "this is playing
+   now" at a glance, and both can be true of the same line. */
+.podcast-utterance.is-speaking {
+  background: color-mix(in oklch, var(--studio-accent) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--studio-accent);
+}
+
+.podcast-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+/* A subtitle transcript scrolls in its OWN box rather than lengthening the studio column, so the
+   auto-scroll that follows the playhead never moves an ancestor — `app.js` sets `scrollTop` here
+   directly instead of calling `scrollIntoView`, which walks every scrollable ancestor. It measures
+   with `getBoundingClientRect`, so nothing here has to establish an `offsetParent` for it. */
+.podcast-transcript.is-timed {
+  position: relative;
+  /* FILLS the space the rest of the panel leaves, rather than taking a share of the window. Two
+     wrong answers came first, both reported from screenshots: a fixed `22rem` (chosen when the
+     podcast shared a scrolling column with two other sections) left a blank strip under the last
+     line while the transcript itself scrolled, and `60vh` then made the panel taller than the
+     column, so the WHOLE right column scrolled and took the heading with it — two nested scrollers,
+     which is worse than either.
+
+     Only a flex chain gets this right, because the available height is what the other elements
+     leave over, and no fraction of the viewport knows that. `min-height` is what keeps the flex
+     item from refusing to shrink below its content — the default `auto` is why an unbounded flex
+     child overflows its parent. */
+  flex: 1 1 auto;
+  min-height: 6rem;
+  overflow-y: auto;
+}
+
+.podcast-utterance {
+  border-radius: var(--radius);
+  padding: 0.5em 0.7em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.podcast-utterance .podcast-speaker {
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--studio-accent);
+  margin-bottom: 0.25rem;
+}
+
+/* --- Studio panel: Notes --- */
+
+.notes-section {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.add-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.add-note textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.note-item {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0.5em 0.7em;
+  font-size: 0.82rem;
+}
+
+.note-item .note-text {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.4rem;
+}
+
+.note-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.note-promote {
+  font-size: 0.72rem;
+  padding: 0.3em 0.6em;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.note-promote:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
+.note-delete {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  font-size: 0.7rem;
+  padding: 0;
+  color: var(--text-faint);
+}
+
+.note-delete:hover {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.save-as-note {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  padding: 0.3em 0.6em;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.save-as-note:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
+/* --- Reasoning-trace ticker (Phase 3) --- */
+
+.ticker-toggle {
+  font-size: 0.72rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15em 0.6em;
+  color: var(--text-faint);
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.ticker-toggle:hover {
+  border-color: var(--accent-dim);
+  color: var(--text-dim);
+}
+
+
+/* The SECOND instance of the hidden-vs-display defect (see .modal-overlay below for the mechanism).
+   This one shipped from Phase 3 and made the step log render permanently expanded with a dead
+   `⌁ N steps` pill. It was missed when the first instance was fixed, and — worse — the commit
+   message and AGENTS.md for that fix both cited "the ticker already toggles on re-click" as the
+   reason a citation detail should toggle too. It never toggled. An independent review caught both
+   the miss and the false justification. */
+
+/* --- Chat overview (the "generate the research artifact" first action) --- */
+
+.chat-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--studio-accent);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  /* NO `max-height` and no scroller of its own any more: it is the THREAD's first entry now, so a
+     long overview simply scrolls away as the conversation grows. The bound existed because this was
+     a sibling ABOVE the list — a flex item whose automatic minimum size is its content, which would
+     have collapsed `.chat-history` to nothing — and it cost the conversation 45% of the column
+     permanently, which a user reported as the overview covering the chat. Inside the scroller both
+     problems are gone: there is no competing flex item left to squeeze. */
+  flex: 0 0 auto;
+}
+
+/* Paired with the `display` above — see the .modal-overlay/.traj-drawer rules for the mechanism and
+   why omitting this pairing has twice made part of this UI unusable. */
+.chat-overview[hidden] {
+  display: none;
+}
+
+.chat-overview-head {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+.starter-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.starter-question {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 0.35em 0.85em;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.starter-question:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
+.chat-starter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+/* --- Source viewer modal --- */
+/* The first stacking-context component in this codebase's web/ — an explicit z-index is set
+   deliberately rather than relying on paint order, since nothing here can be assumed about how a
+   later addition might append its own fixed-position elements. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in oklch, var(--bg) 40%, transparent);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+/* MUST come with the `display: flex` above, not be treated as optional polish. `hidden` is the ONLY
+   thing app.js uses to open and close this overlay, and the attribute works by way of the UA
+   stylesheet's `[hidden] { display: none }` — which ANY author `display` declaration outranks,
+   whatever its specificity, because author styles always beat UA styles. Without this rule the
+   overlay is permanently visible: `inset: 0` plus `z-index: 1000` then swallows every click on the
+   page, and the ✕ appears dead because closing sets an attribute that no longer changes anything.
+   That is exactly how this shipped in the source-viewer slice, and it made the whole UI unusable
+   from the first paint. Any future element that is both `hidden`-toggled and given a `display`
+   rule needs the same pair — `tests/test_web_assets.py` fails the build if one is added without it. */
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row label {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.setting-source {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal {
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px color-mix(in oklch, var(--bg) 60%, black);
+  width: min(760px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Was id-scoped, so the settings modal's title rendered unstyled. A class both modals carry. */
+.modal-head .modal-title,
+.modal-head #source-viewer-title {
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.modal-close {
+  flex: 0 0 auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  color: var(--text-dim);
+}
+
+.modal-close:hover {
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
+.modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.source-block {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.source-block:last-child {
+  border-bottom: none;
+}
+
+.source-block-locator {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--studio-accent);
+  margin-bottom: 0.4rem;
+}
+
+.source-block-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 1024px) {
+  .cols {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+
+  .col-studio {
+    grid-column: 1 / -1;
+    border-left: none;
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 640px) {
+  .cols {
+    grid-template-columns: 1fr;
+  }
+
+  .col-sources,
+  .col-studio {
+    border: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .notebook-switch {
+    max-width: none;
+  }
+
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .modal {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+}
+
+/* --- Run status: a live "this is working" surface, shared by the overview, the Guide tabs and the
+   podcast. It exists because of a real report: a generation takes a minute or more, the only
+   feedback was one line of text that ended on "finished" and then sat there, so the natural move is
+   to press the button again — which strands the first generation behind a staleness guard and looks
+   like nothing happened at all. Same shape a sibling project's own live-status strip uses. --- */
+
+.run-status {
+  display: flex;
+  /* Top, not centre: once `.run-text` wraps to two lines, centring floats the dot and the Stop
+     button into the middle of a tall row instead of lining them up with the first line. */
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 0.88rem;
+}
+
+.run-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: run-pulse 1.2s ease-in-out infinite;
+}
+
+/* The animation is the whole signal, so a reduced-motion reader needs the dot to still READ as
+   active rather than as a finished one — hence a steady accent rather than nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .run-dot { animation: none; }
+}
+
+@keyframes run-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.run-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-dim);
+  /* WRAPS. It was `nowrap` + ellipsis, which truncated the end of the line — and the end is where
+     the elapsed time lives, so the one part that changes was the part being cut. A user hit it on
+     "正在合成語音…（此階段無法中止）· 已…". `.run-status` already wraps its children, so a
+     two-line status costs nothing; the phrase is bounded by the column either way. */
+  overflow-wrap: anywhere;
+}
+
+.run-elapsed {
+  flex: none;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+
+.run-stop {
+  flex: none;
+  padding: 0.25em 0.6em;
+  font-size: 0.78rem;
+}
+
+/* A step that has gone quiet for a while. The dot slows rather than stopping: still working, just
+   not hearing anything — a stopped dot would say the opposite. */
+.run-status.is-waiting .run-dot {
+  animation-duration: 2.4s;
+}
+
+.run-status.is-waiting .run-text {
+  color: var(--text-faint);
+}
+
+.run-status.is-done .run-dot {
+  animation: none;
+  background: var(--text-faint);
+}
+
+/* Typed counters. They wrap to their own line under the status text so a long activity line never
+   squeezes them out — the activity is the headline, these are the shape of the work behind it. */
+.run-meter {
+  flex: 1 0 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+
+.run-meter[hidden] {
+  display: none;
+}
+
+.run-count b {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* The status row wraps once the meter appears, so the dot/text/timer line keeps its own row. */
+.run-status {
+  flex-wrap: wrap;
+}
+
+.run-status[hidden] { display: none; }
+
+/* A short line under a panel head, saying what the panel is FOR. Users could not tell what Studio,
+   Podcast or Notes were; hover titles carry the per-control detail, this carries the one sentence
+   that has to be visible without hovering anything. */
+.panel-sub {
+  margin: -0.15rem 0 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.panel-sub b {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* The settings page's one non-text control (interface language). Matches the text inputs beside it
+   rather than inheriting the UA's own select chrome, which looks foreign on both themes. */
+.setting-row select {
+  width: 100%;
+  padding: 0.5em 0.6em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+
+.setting-row select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- Tooltip -----------------------------------------------------------------------------------
+   This project's own, not the native `title`. The native one waits about a second and renders in
+   the browser's chrome, which is why the siblings' hover help felt snappier even though they use
+   `title` too: their controls light up instantly and the text arriving late reads as a second,
+   separate thing. Here the outline and the label share one 120ms transition, so they arrive
+   together — which is what the user actually described. */
+
+[data-tip] {
+  position: relative;
+}
+
+/* A small arrow, so the panel reads as attached to the control rather than as a box that appeared
+   over the page. Reported from a screenshot where a tab's tip floated across the panel and
+   overlapped the button below it with nothing tying the two together. */
+[data-tip]::before {
+  content: "";
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0.75rem;
+  z-index: 61;
+  width: 8px;
+  height: 8px;
+  border-left: 1px solid var(--border-strong);
+  border-top: 1px solid var(--border-strong);
+  background: var(--surface-1);
+  transform: rotate(45deg) translateY(-3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+[data-tip]:hover::before,
+[data-tip]:focus-visible::before {
+  opacity: 1;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: max-content;
+  max-width: 15rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: normal;
+  text-align: left;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transform: translateY(-3px);
+  pointer-events: none;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* A tooltip is decoration for a control that already has an accessible name; it must never be the
+   only way to read something, and it must not animate for a reader who asked it not to. */
+@media (prefers-reduced-motion: reduce) {
+  [data-tip]::after,
+  [data-tip]::before { transition: none; }
+}
+
+/* Inside the narrow left rail a right-anchored tip hangs off the edge and gets clipped — reported
+   from a screenshot, where "移除這個來源" was cut in half by the column boundary. These anchor to
+   the RIGHT edge of the column instead and are allowed to be narrower.
+   (The selector said `.source-row`, a class that does not exist; the real one is `.source-item`.) */
+.notebook-row [data-tip]::after,
+.source-item [data-tip]::after,
+.source-item[data-tip]::after {
+  right: 0;
+  left: auto;
+  max-width: 13rem;
+}
+
+/* The flag line is full-width inside the item, so its tip can anchor left without overflowing. */
+.source-item .src-flags[data-tip]::after {
+  left: 0;
+  right: auto;
+}
+
+/* Studio tabs sit in a row across a 340px rail, so which SIDE a tip may extend towards depends on
+   which tab it belongs to. Left-anchoring them all put the last tab's tip off the right edge, where
+   it was clipped mid-sentence (reported from a screenshot of the Insight tab). The first half of
+   the row opens rightwards, the second half leftwards; the arrow follows its own tab either way. */
+/* Anchored to the ROW, not to the tab. Flipping direction per tab (the previous attempt) still
+   clipped: the rail is ~21rem and a 15rem tip starting at the second tab's left edge runs off the
+   end regardless of which way it opens. Spanning the row is the only version that cannot overflow
+   for ANY tab at ANY label length. The arrow goes with it — an arrow that cannot point at the tab
+   it belongs to is worse than none, and the tip still appears only while that tab is hovered. */
+.guide-tabs {
+  position: relative;
+}
+
+.guide-tabs .tab {
+  position: static;
+}
+
+.guide-tabs .tab[data-tip]::after {
+  left: 0;
+  right: 0;
+  width: auto;
+  max-width: none;
+}
+
+.guide-tabs .tab[data-tip]::before {
+  content: none;
+}
+
+/* --- Notebook picker (header) ------------------------------------------------------------------
+   Notebooks are reached by TITLE. The id is an internal handle (invariant 37) and used to be the
+   only way in: a bare text box plus a datalist of `id (N sources, M turns)`, which put the handle
+   and machine metadata in front of the name. */
+
+.notebook-picker {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.notebook-current {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 100%;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.notebook-current:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.notebook-current-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.notebook-caret {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.notebook-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 70;
+  width: min(24rem, 90vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* `hidden` is an ATTRIBUTE the UA styles with `display: none`, which ANY author `display` outranks
+   — invariant 36, the bug that once blanked this whole UI. Declared here rather than left to be
+   rediscovered. */
+.notebook-menu[hidden] {
+  display: none;
+}
+
+.notebook-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  border-radius: var(--radius);
+}
+
+.notebook-row:hover {
+  background: var(--surface-2);
+}
+
+.notebook-row.is-current .notebook-row-title {
+  color: var(--accent);
+}
+
+.notebook-row-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notebook-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* The counts stay, but demoted to a whisper under the name — they answer "which of these two is the
+   one with all my papers in it", which is a real question. They are not the row's identity. */
+.notebook-row-meta {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.notebook-row-rename {
+  flex: none;
+  width: 2rem;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  border-radius: var(--radius);
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease;
+}
+
+/* Revealed on hover/focus rather than always visible: a pencil on every row turns the list into a
+   grid of controls instead of a list of notebooks. Focus-within keeps it reachable by keyboard. */
+.notebook-row:hover .notebook-row-rename,
+.notebook-row:focus-within .notebook-row-rename {
+  opacity: 1;
+}
+
+.notebook-row-rename:hover {
+  color: var(--accent);
+}
+
+.notebook-row-new {
+  padding: 0.55rem 0.6rem;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  margin-top: 0.2rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.notebook-row-new:hover {
+  color: var(--accent);
+}
+
+.notebook-rename-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+/* --- Save-as-note bookmark ---------------------------------------------------------------------
+   A corner bookmark rather than a labelled bar under the answer: the bar competed with the answer
+   for attention and pushed the next turn down, and "keep this" is a gesture people already know.
+   The label survives as the tooltip, which is also the only place that can explain the part nobody
+   would guess — promoting a note is what makes it citable. */
+
+.turn-answer,
+.chat-overview {
+  position: relative;
+}
+
+.save-as-note {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+/* Revealed on hover/focus of the answer it belongs to. Always-on bookmarks on every turn turn the
+   transcript into a column of controls; focus-within keeps it keyboard-reachable. */
+.turn-answer:hover .save-as-note,
+.turn-answer:focus-within .save-as-note,
+.chat-overview:hover .save-as-note,
+.chat-overview:focus-within .save-as-note,
+.save-as-note:focus-visible {
+  opacity: 1;
+}
+
+.save-as-note:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Stays visible while it is showing the saved state, or the confirmation vanishes with the cursor. */
+.save-as-note.is-saved {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.save-as-note:disabled {
+  cursor: default;
+}
+
+/* Its tip would otherwise hang off the right edge of the chat column. */
+.save-as-note[data-tip]::after {
+  right: 0;
+  max-width: 16rem;
+}
+
+/* --- Source metadata (the viewer modal's header block) -----------------------------------------
+   The modal used to open with the raw origin as its title — `text · pasted:Voyager 1 launched on
+   September 5, 1977. Voyager 2 launched #b2ad719a` — and then the text, with nothing in between.
+   A user called it too rough, correctly: an origin is a machine string, not a heading. */
+
+.source-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.35rem 0.9rem;
+  margin: 0 0 1.1rem;
+  padding: 0 0 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.source-meta dt {
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-top: 0.15rem;
+  white-space: nowrap;
+}
+
+.source-meta dd {
+  margin: 0;
+  color: var(--text-dim);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.source-meta a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent-dim);
+}
+
+.source-meta a:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* The title is a readable name now (a hostname, or the pasted snippet), so it can carry weight. */
+#source-viewer-title {
+  font-weight: 600;
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A card that opens something should say so before it is clicked. A sheen crossing the surface on
+   hover is the `alloy sweep` treatment `cve-reverser/studio` uses for its own result card; here it
+   is slower and fainter, because this is a list of many rather than one hero. */
+.source-item:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-1);
+}
+
+.source-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 35%,
+    color-mix(in oklch, var(--accent) 10%, transparent) 50%,
+    transparent 65%
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.source-item:hover::before {
+  animation: source-sheen 620ms ease-out;
+}
+
+@keyframes source-sheen {
+  from { transform: translateX(-100%); opacity: 1; }
+  to { transform: translateX(100%); opacity: 1; }
+}
+
+/* Motion is the whole effect here, so a reader who asked for less simply does not get it — the
+   border and background change already carry "this is interactive". */
+@media (prefers-reduced-motion: reduce) {
+  .source-item:hover::before { animation: none; }
+}
+
+/* --- "which notebook is generating" ------------------------------------------------------------
+   Once a run outlives the panel you started it from — switch notebooks and it keeps going — there
+   is nothing on screen tying it to a notebook. Reported as exactly that question. */
+
+.notebook-row-dot {
+  flex: none;
+  align-self: center;
+  margin-right: 0.4rem;
+  /* Anchored to the ROW, not to itself: an 8px dot at the row's left edge put a 13rem tip well past
+     the left edge of `.notebook-menu`, which is `overflow-y: auto` and therefore clips x too. The
+     ancestor case `test_no_tooltip_host_clips_its_own_tooltip` explicitly does not cover. */
+  position: static;
+}
+
+.notebook-row {
+  position: relative;
+}
+
+.notebook-row .notebook-row-dot[data-tip]::after {
+  left: 0.5rem;
+  right: auto;
+  max-width: min(20rem, 85vw);
+}
+
+.notebook-row .notebook-row-dot[data-tip]::before {
+  left: 1rem;
+  right: auto;
+}
+
+.notebook-row.is-running .notebook-row-title {
+  color: var(--accent);
+}
+
+/* The row's own layout is a column of title + meta; the dot needs a row of its own alongside. */
+.notebook-row.is-running .notebook-row-open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 0;
+  align-items: center;
+}
+
+.notebook-row.is-running .notebook-row-dot {
+  grid-row: 1 / span 2;
+}
+
+/* The header button, for the notebook currently on screen. A dot rather than a spinner: the run
+   status inside the panel already carries the detail, this only has to say "still going".
+   A REAL element, not a `::after`: as a pseudo-element it became a flex item of the button and grew
+   into the blob a user screenshotted hanging below the header. */
+.notebook-run-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: run-pulse 1.2s ease-in-out infinite;
+}
+
+.notebook-run-dot[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notebook-run-dot { animation: none; }
+}
+
+/* --- Reference list ----------------------------------------------------------------------------
+   Replaces a row of `✓ s3 · whole` repeated once per citation. Four identical lines carried no
+   information: a text or web source has one block whose locator is literally "whole", so the row
+   said nothing except that a citation existed. This is one entry per DISTINCT source span —
+   numbered, named by the source's own title, and showing the quoted evidence, which is the thing a
+   reader came to check and which was not on screen at all before. */
+
+.references {
+  margin-top: 0.9rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.references-toggle {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.references-toggle::before {
+  content: "▸ ";
+}
+
+.references-toggle.is-open::before {
+  content: "▾ ";
+}
+
+.references-toggle:hover {
+  color: var(--accent);
+}
+
+.reference-list[hidden] {
+  display: none;
+}
+
+.reference-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  counter-reset: reference;
+}
+
+.reference-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.reference-number {
+  flex: none;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.reference-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Reads as a reference LINK, which is the affordance a reader is looking for here — it opens the
+     original passage. */
+  border-bottom: 1px solid var(--accent-dim);
+}
+
+.reference-name:hover {
+  border-bottom-color: var(--accent);
+}
+
+/* `flex: none` was right while a locator was `whole` / `page:3` / `ts:04:10` and wrong the moment
+   one was not: a locator is MODEL OUTPUT, and a run was observed writing a whole section heading
+   into it, which an unshrinkable chip then stretched until the rest of the meta row was pushed out
+   of the card. It shrinks and clamps now — a bad value is ugly in one chip instead of breaking the
+   row around it. (The pre-SUBMIT coordinate check stops that value being produced; this stops the
+   next unforeseen one from costing the reader the row.) */
+.reference-locator {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.reference-badge {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--ok, var(--accent));
+  cursor: help;
+}
+
+.reference.is-unverified .reference-badge {
+  color: var(--bad);
+}
+
+.reference.is-unverified .reference-name {
+  color: var(--text-dim);
+  border-bottom-style: dashed;
+  border-bottom-color: var(--bad);
+}
+
+.reference-trace {
+  flex: none;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  padding: 0.1rem 0.5rem;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.reference-trace:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* The evidence. A quote is the source's own words, so it is set as one — indented, in the reading
+   face, visually distinct from the model's prose above it. */
+.reference-quote {
+  margin: 0.35rem 0 0 1.7rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+/* Opens INSIDE its own reference. It used to write into a single slot appended after the whole
+   list, so clicking the third entry answered several rows below with nothing connecting them. */
+.reference-detail {
+  margin: 0.4rem 0 0 1.7rem;
+}
+
+.reference-detail[hidden] {
+  display: none;
+}
+
+/* --- Adding a source ---------------------------------------------------------------------------
+   Ingestion is a fetch plus a parse plus possibly OCR: seconds to tens of seconds. Only the submit
+   button was disabled, so the panel simply stopped responding and read as frozen. */
+
+.add-source.is-busy {
+  /* The inputs stay legible; what changes is that the form is visibly not accepting more. */
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.add-source.is-busy button[type="submit"] {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.add-source.is-busy button[type="submit"]::before {
+  content: "";
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-top: -0.45rem;
+  border: 2px solid color-mix(in oklch, var(--bg) 45%, transparent);
+  border-top-color: var(--bg);
+  border-radius: 50%;
+  animation: spin 620ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* A spinner IS the message for a reader who asked for less motion, so it becomes a static ring
+   rather than disappearing — the label already says "Adding…". */
+@media (prefers-reduced-motion: reduce) {
+  .add-source.is-busy button[type="submit"]::before { animation: none; }
+}
+
+/* --- Run log -----------------------------------------------------------------------------------
+   "Starting up…" alone for a minute says what is happening NOW and nothing about which stage is
+   slow. The log answers "where is it stuck": every step keeps its own elapsed stamp, so a gap is
+   visible rather than inferred. Collapsed by default — the one-line summary exists precisely
+   because most of the time nobody needs the rest. */
+
+.run-log-toggle {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* A flex gap, not a space inside `content` — the caret was sitting flush against the text. */
+.run-log-toggle::before {
+  content: "▸";
+  display: inline-block;
+  font-size: 0.62rem;
+}
+
+.run-log-toggle.is-open::before {
+  content: "▾";
+}
+
+.run-log-toggle:hover {
+  color: var(--accent);
+}
+
+.run-log-toggle[hidden],
+.run-log[hidden] {
+  display: none;
+}
+
+.run-log {
+  flex: 1 0 100%;
+  max-height: 11rem;
+  overflow-y: auto;
+  /* NO border/background of its own. `.run-status` is already a bordered card, so a second one
+     around a single log line rendered as an empty box inside an empty box. */
+  position: relative;
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+/* Flex, not a 3-column grid: the grid's `1fr` middle column is what pushed the meta to the far
+   right edge, leaving a hand's width of empty box between "啟動" and "GenerateSummary" on a wide
+   panel. Here every part sits at its natural width, left to right, and only the detail claims a
+   whole line. The left rail carries the kind colour — the shape `cve-reverser`'s `.tstep` uses. */
+/* A TIMELINE, not a list of independent rows: one continuous rail with a node per step, so the log
+   reads as a single process advancing. The shape Cursor and Devin use for an agent's step list, and
+   the reason a per-line left border did not do the job — four separate 2px bars read as four
+   unrelated items. */
+.run-log-line {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.55rem;
+  padding: 0.25rem 0 0.35rem 1rem;
+}
+
+/* The rail: drawn per row and running the full height, so it connects to the next row without the
+   container having to know how many there are. Stops at the last row. */
+.run-log-line::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 0.9em;
+  bottom: -0.35rem;
+  width: 1px;
+  background: var(--border);
+}
+
+.run-log-line:last-child::before {
+  display: none;
+}
+
+/* The node. `background` carries the step's kind colour, set by the `kind-*` rules below. */
+.run-log-line::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+/* The step being watched right now. DISJOINT properties from the `kind-*::after` rules below, which
+   own `background` at the same specificity and are declared later — setting `background` here would
+   be a rule that silently does nothing for every step that has a kind, which is the collision shape
+   invariant 44 records twice already. The node keeps its kind colour and gains a pulse and a ring. */
+.run-log-line.is-current::after {
+  animation: run-pulse 1.2s ease-in-out infinite;
+  /* Every other user of this keyframe has a reduced-motion opt-out; this one shipped without. */
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 25%, transparent);
+}
+
+.run-log-line.is-past {
+  color: var(--text-faint);
+}
+
+.run-log-line.is-expandable {
+  cursor: pointer;
+}
+
+.run-log-line.is-expandable:hover .run-log-detail {
+  color: var(--text-dim);
+}
+
+.run-log-at {
+  flex: none;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.run-log-what {
+  display: contents;  /* the headline and the detail are separate grid cells, not one blob */
+}
+
+.run-log-what b {
+  flex: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The model's own reasoning, which is what makes the log worth opening. Clamped to two lines so a
+   long turn does not push every other step out of view; the full text is in the trace file the
+   citation lookup already reads. */
+/* Its OWN row under the headline, not trailing off the end of it: the model's reasoning is a
+   sentence, and a sentence squeezed into the tail of a label wraps into the meta column. */
+.run-log-detail {
+  /* Its own line under the headline, full width. Clamped to ONE line once the step is in the past,
+     opened by a click — a long run otherwise turns the log into the wall of prose the panel it
+     lives in is trying not to be. */
+  flex: 1 0 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 0.1rem;
+  color: var(--text-faint);
+  font-family: var(--sans, inherit);
+  line-height: 1.5;
+}
+
+/* The compact fact on the right — how much a step read, which attempt a sub-call is. Same column
+   `cve-reverser`/`diff-sentry` put their own `meta` in. */
+.run-log-meta {
+  flex: none;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+/* One channel per kind, so a scan down the log shows its SHAPE — mostly reasoning, or mostly tool
+   calls — without reading a word of it. */
+.run-log-line.kind-tool .run-log-what { color: var(--accent); }
+.run-log-line.kind-escalation .run-log-what { color: var(--studio-accent); }
+.run-log-line.kind-done .run-log-what { color: var(--ok, var(--text)); }
+.run-log-line.kind-tool::after { background: var(--accent); }
+.run-log-line.kind-escalation::after { background: var(--studio-accent); }
+.run-log-line.kind-done::after { background: var(--ok, var(--text-faint)); }
+
+/* --- Studio rail: four views, collapsible ------------------------------------------------------
+   It was three sections stacked in one scrolling column. A notebook with a generated guide, an
+   episode and a few notes became a column nobody could find anything in — and there was nowhere to
+   put a fourth thing, which is what References needed. */
+
+.studio-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+/* The view switcher and the Guide-kind row sit one above the other, and both used to be bordered
+   pills of the same size — so nothing said which one contained the other. They are different
+   LEVELS: this row changes what the whole column is showing, the row inside Studio only picks a
+   kind within it. Underline-vs-pill is how GitHub (repo nav vs filter chips), Linear (view tabs vs
+   filters) and Notion (database views vs inner chips) all split exactly this pair, and it costs no
+   horizontal room — which a 340px column with "Podcast" and "時間軸" in it does not have to spare. */
+.studio-views {
+  display: flex;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.col-studio:not(.is-collapsed) .studio-views {
+  border-bottom: 1px solid var(--border);
+}
+
+.studio-view-tab {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.3rem 0.4rem;
+  border: none;
+  /* The indicator, and the reason this row needs no box at all. -1px pulls the 2px underline over
+     the row's own 1px rule so the two read as one line rather than as a stack. */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.studio-view-tab:hover {
+  color: var(--accent);
+  border-bottom-color: var(--border-strong);
+  /* DISJOINT from `.is-active`, which sets `color` + `border-bottom-color` at the same specificity
+     and is declared later — so without a property of its own, hovering the current tab did
+     nothing at all. Same collision `.podcast-utterance` already records (invariant 44), resolved
+     the same way. */
+  background: var(--surface-2);
+}
+
+/* Active is WEIGHT plus the accent underline, not an accent fill: the Guide row below is already a
+   filled accent pill, and two accent blocks stacked would compete instead of nesting. The loudest
+   thing on screen stays the innermost selection. */
+.studio-view-tab.is-active {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+
+.studio-view[hidden] {
+  display: none;
+}
+
+/* Collapsed: a thin rail. The tabs stay reachable, stacked and truncated to their first glyph, so
+   the panel can be brought back to a SPECIFIC view rather than only to whatever was last open. */
+.col-studio.is-collapsed {
+  padding: 0.7rem 0.3rem;
+  /* VISIBLE, not hidden: `hidden` clipped every tooltip in the rail, which is the one place a
+     tooltip is not optional — an icon-only control has no other way to say what it is. There is
+     nothing to scroll here anyway; the views are all display:none. */
+  overflow: visible;
+}
+
+.col-studio.is-collapsed .studio-bar {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+
+.col-studio.is-collapsed .studio-views {
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+/* ICONS, not vertical text. Rotated CJK in a 2.9rem rail was unreadable and looked broken; an icon
+   rail is what `cloud.projectdiscovery.io` collapses to and it is legible at any width. The label
+   moves to the tooltip, so the view is still named — just on hover.
+   Real ELEMENTS, not `content: attr(...)` on a pseudo: `data-i18n` assigns `textContent` to the
+   element it is on, which wipes every child, so the icon has to be a sibling of a label span that
+   owns the translation — and the pseudo-element version rendered nothing at all. */
+.tab-label {
+  /* The clamp lives on the label, not the button — a button that clips its own overflow clips its
+     own tooltip with it. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-icon {
+  display: none;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.col-studio.is-collapsed .studio-view-tab {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+
+.col-studio.is-collapsed .tab-icon {
+  display: inline;
+}
+
+/* An underline under a 2rem icon square is meaningless, so the rail keeps the box treatment. It is
+   an inset shadow rather than a border so it never fights the underline the expanded row uses. */
+.col-studio.is-collapsed .studio-view-tab {
+  border-bottom-color: transparent;
+  margin-bottom: 0;
+  border-radius: var(--radius);
+}
+
+/* `:not(.is-active)` because the active rail tab sets `box-shadow` itself at equal specificity;
+   its own hover signal is the icon turning accent, below, which collides with nothing. */
+.col-studio.is-collapsed .studio-view-tab:hover:not(.is-active) {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.col-studio.is-collapsed .studio-view-tab.is-active {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.col-studio.is-collapsed .tab-label {
+  display: none;
+}
+
+.col-studio.is-collapsed .studio-view {
+  display: none;
+}
+
+/* --- References view ---------------------------------------------------------------------------
+   Every passage cited anywhere in the notebook, once. Each card opens INTO the original passage
+   beneath it rather than throwing a modal over the page, so checking a claim never loses the place
+   you were reading. */
+
+.reference-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* A reference is a compact ROW that opens, not a card full of quotes. The previous version rendered
+   every quote as an always-visible blockquote, so one source cited eight times filled the whole
+   column and the list stopped being scannable — reported with a screenshot. The shape here is the
+   one Kagi's assistant and Google's AI answers both use: number, title, a small provenance chip, a
+   single clamped line of the passage, and everything else behind a click. */
+
+.ref-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  padding: 0.5rem 0.6rem;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.ref-card.is-open {
+  border-color: var(--border-strong);
+}
+
+/* Pointing at the answer's stroke lights up this row, and vice versa (`linkReference`). Kept
+   DISJOINT from `.is-focused` below, which owns `border-color`, so a hover over one reference can
+   never wipe the focus ring on another — the collision invariant 44 records. */
+.ref-card.is-linked {
+  background: color-mix(in oklch, var(--accent) 12%, var(--surface-2));
+}
+
+/* Focus owns `border-color` and NOTHING else. It used to set `background` too — the same property
+   `.is-linked` above sets, at equal specificity and declared later — so hovering the row you had
+   just clicked a citation to reach gave no feedback at all. An independent review caught the CSS
+   comment and invariant 58 both claiming a disjointness that was only half true, which is the exact
+   mistake invariant 44 already records happening twice. */
+.ref-card.is-focused {
+  border-color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.ref-card.is-unverified {
+  border-left: 2px solid var(--bad);
+}
+
+.ref-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ref-card-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ref-card-name {
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+
+/* The provenance chip: a hostname for a web source, the kind for anything else. */
+.ref-card-chip {
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  background: var(--surface-1);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.ref-card-uses {
+  font-variant-numeric: tabular-nums;
+}
+
+.ref-card-unverified {
+  color: var(--bad);
+}
+
+.ref-card-caret {
+  flex: none;
+  color: var(--text-faint);
+  transition: transform 140ms ease;
+}
+
+.ref-card.is-open .ref-card-caret {
+  transform: rotate(90deg);
+}
+
+/* Two lines, clamped. Enough to recognise the passage, never enough to become the wall of text
+   this replaced. */
+.ref-card-snippet {
+  margin-top: 0.35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.ref-card.is-open .ref-card-snippet {
+  display: none;
+}
+
+.ref-card-body {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.ref-card-body[hidden] {
+  display: none;
+}
+
+.ref-card-passage {
+  margin-top: 0.55rem;
+  max-height: 24rem;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+
+/* One line under an answer, in place of a second copy of the list. */
+.reference-link {
+  /* Its OWN line, but only a little space by default — the generous version below is for a chat
+     answer, where this is a footer. In a podcast utterance the same 1rem read as a blank strip
+     under every line of the transcript. */
+  display: block;
+  width: fit-content;
+  margin-top: 0.45rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.reference-link::before {
+  content: "\2197 ";
+}
+
+.reference-link:hover {
+  color: var(--accent);
+}
+
+/* --- A trace step, in the source viewer's language ---------------------------------------------
+   It was `JSON.stringify(payload, null, 2)` in one `<pre>` — a wall containing an entire article. */
+
+.trace-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trace-reasoning {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.trace-block > summary {
+  cursor: pointer;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trace-block > summary:hover {
+  color: var(--accent);
+}
+
+.trace-block pre {
+  margin: 0.4rem 0 0;
+  padding: 0.6rem 0.7rem;
+  max-height: 18rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.trace-output {
+  color: var(--text-dim);
+}
+
+/* --- The resize grip ---------------------------------------------------------------------------
+   On the panel's own left edge, and STILL THERE when the panel is collapsed — that is what makes
+   the gesture reversible, and it is the detail that makes `cloud.projectdiscovery.io`'s version
+   feel like a panel you own rather than a switch you press. */
+
+.col-studio {
+  position: relative;
+}
+
+.studio-resize {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  /* Touch devices would otherwise scroll the page instead of dragging the handle. */
+  touch-action: none;
+}
+
+.studio-resize::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 1px;
+  background: var(--border);
+  transition: background 120ms ease;
+}
+
+.studio-resize:hover::before,
+.studio-resize:focus-visible::before,
+body.is-resizing .studio-resize::before {
+  background: var(--accent);
+}
+
+.studio-grip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--text-faint);
+  font-size: 0.6rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+/* Revealed on approach, and always visible while collapsed — a rail with no visible way back out
+   is a trap. */
+.studio-resize:hover .studio-grip,
+.studio-resize:focus-visible .studio-grip,
+body.is-resizing .studio-grip,
+.col-studio.is-collapsed .studio-grip {
+  opacity: 1;
+}
+
+.studio-resize:hover .studio-grip,
+body.is-resizing .studio-grip {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* EXPANDED: the same overflow the Guide tabs above already hit, and the same fix. A tab is a
+   quarter of the column, so a 15rem tip anchored to it runs off the column's left edge — and
+   `.col`'s `overflow-y: auto` clips it there, because a non-visible overflow on ONE axis forces the
+   other to `auto` too. Reported from a screenshot with the text sliced down its left side.
+   Anchoring to the tab ROW makes overflow structurally impossible: the row is already exactly as
+   wide as the space inside the column. The arrow goes with it, for the reason stated above — an
+   arrow that cannot point at its own tab is worse than no arrow. */
+.col-studio:not(.is-collapsed) .studio-views {
+  position: relative;
+}
+
+.col-studio:not(.is-collapsed) .studio-view-tab {
+  position: static;
+}
+
+.col-studio:not(.is-collapsed) .studio-view-tab[data-tip]::after {
+  left: 0;
+  right: 0;
+  width: auto;
+  max-width: none;
+}
+
+.col-studio:not(.is-collapsed) .studio-view-tab[data-tip]::before {
+  content: none;
+}
+
+/* A rail tab sits against the right edge of the window, so its tip has to open LEFTWARDS or it goes
+   off-screen entirely. */
+.col-studio.is-collapsed .studio-view-tab[data-tip]::after {
+  top: 50%;
+  right: calc(100% + 10px);
+  left: auto;
+  transform: translateY(-50%) translateX(3px);
+  max-width: 14rem;
+}
+
+.col-studio.is-collapsed .studio-view-tab[data-tip]:hover::after,
+.col-studio.is-collapsed .studio-view-tab[data-tip]:focus-visible::after {
+  transform: translateY(-50%) translateX(0);
+}
+
+/* The arrow points sideways to match. */
+.col-studio.is-collapsed .studio-view-tab[data-tip]::before {
+  top: 50%;
+  right: calc(100% + 5px);
+  left: auto;
+  margin-top: -4px;
+  transform: rotate(135deg);
+}
+
+/* The icon is the whole control when collapsed, so it gets the accent on hover like any other. */
+.col-studio.is-collapsed .studio-view-tab:hover .tab-icon {
+  color: var(--accent);
+}
+
+/* --- Markdown, as rendered by `renderMarkdownInto` ---------------------------------------------
+   Answers arrive written in markdown whether or not anyone asked for it, and we used to show the
+   raw `**bold**` and `## heading` characters. Everything here is deliberately restrained: these
+   blocks live INSIDE a chat bubble, so they must read as a well-set message rather than as a page. */
+
+.md-p {
+  margin: 0 0 0.65em;
+}
+
+.md-p:last-child {
+  margin-bottom: 0;
+}
+
+.md-head {
+  margin: 1.1em 0 0.45em;
+  font-size: 0.95em;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.md-head:first-child {
+  margin-top: 0;
+}
+
+.md-list {
+  margin: 0 0 0.65em;
+  padding-left: 1.35em;
+}
+
+.md-list .md-list {
+  margin: 0.25em 0 0;
+}
+
+.md-list li {
+  margin: 0.2em 0;
+}
+
+.md-quote {
+  margin: 0 0 0.65em;
+  padding: 0.1em 0 0.1em 0.8em;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-dim);
+}
+
+.md-quote p {
+  margin: 0.2em 0;
+}
+
+.md-code {
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  background: var(--surface-1);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.88em;
+}
+
+.md-pre {
+  margin: 0 0 0.65em;
+  padding: 0.6em 0.75em;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  /* Its OWN scroller: a long line must never make the page scroll sideways. */
+  overflow-x: auto;
+}
+
+.md-pre code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.82em;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+/* Same reasoning as `.md-pre`: a wide table scrolls inside its own box. */
+.md-table-wrap {
+  margin: 0 0 0.65em;
+  overflow-x: auto;
+}
+
+.md-table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+
+.md-table th,
+.md-table td {
+  padding: 0.3em 0.6em;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.md-table th {
+  background: var(--surface-1);
+  font-weight: 600;
+}
+
+/* A link is SHOWN, never navigable — see `renderInline`. Styled as text with a hint of a link so it
+   does not read as a broken one: dotted, not underlined, and no pointer cursor. */
+.md-link {
+  border-bottom: 1px dotted var(--text-faint);
+  color: var(--text);
+  /* It copies on click, so it has to look operable — but never like a link that navigates. */
+  cursor: copy;
+}
+
+.md-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.md-link:hover {
+  border-bottom-color: var(--accent);
+}
+
+.run-log-line.is-current .run-log-detail,
+.run-log-line.is-expanded .run-log-detail {
+  -webkit-line-clamp: 12;
+}
+
+/* How long the step took, shown rather than hidden in a tooltip — the log is a scroller, so a tip
+   anchored inside it is clipped by its own container. */
+.run-log-took {
+  flex: none;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-log-line.is-current::after {
+    animation: none;
+  }
+}
+
+/* An overview that came back without starter questions says so, rather than rendering nothing —
+   which read as the feature having been removed. */
+.chat-overview-note {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+}
+
+/* Suggestions belong to the LATEST answer only. Every turn persists its own, so without this a
+   ten-turn conversation showed ten rows of chips, nine of them offering to continue from a point
+   the reader had already moved past. `:last-child` reads the DOM instead of asking both render
+   paths to agree on which turn is newest — and it hides them under a pending row for free. */
+.turn:not(:last-child) .turn-followups {
+  display: none;
+}
+
+/* --- The end of an answer ----------------------------------------------------------------------
+   The reference link, the steps pill and the follow-up chips were three block siblings with almost
+   no space between them, so every answer ended in a crowded stack — reported from a screenshot. The
+   two small meta affordances stay together; the suggestions are a different KIND of thing and get a
+   rule of their own to sit under. */
+
+.turn-answer .ticker-affordance {
+  margin-top: 0.35rem;
+}
+
+.turn-followups {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.turn-followups .chat-overview-head {
+  margin-bottom: 0.5rem;
+}
+
+.starter-questions {
+  gap: 0.45rem;
+}
+
+/* A chat answer ends in a footer, so its reference link gets room. A transcript line does not. */
+.turn-answer .reference-link,
+.chat-overview .reference-link {
+  margin-top: 1rem;
+}
+
+/* --- The podcast view fills its column ---------------------------------------------------------
+   The transcript can only fill what is left over if every box between it and the column says so.
+   `min-height: 0` at each level is the load-bearing half: a flex item's default minimum is its
+   CONTENT, so without it the chain refuses to shrink and the column scrolls instead.
+
+   The `display` on `.studio-view` is exactly what invariant 36 governs — that class is toggled with
+   the `hidden` attribute, and an author `display` outranks the UA stylesheet's `[hidden]` rule. It
+   is safe ONLY because of the guard directly below, whose selector is one token longer and so wins
+   on specificity regardless of order. Do not add the first rule without the second. */
+.col-studio .studio-view[data-view-body="podcast"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.col-studio .studio-view[data-view-body="podcast"][hidden] {
+  display: none;
+}
+
+.podcast-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.podcast-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  /* Only the transcript grows; everything above it keeps its own height. Without this the audio
+     element, the download link and the steps pill all get an equal share of the column. */
+  align-items: stretch;
+}
+
+/* A flex column stretches its children to full width by default, which turned an inline-block
+   download link and the small steps pill into full-width boxes with their label stranded on the
+   left — reported from a screenshot. They keep their natural width; the player and the transcript,
+   which SHOULD span, are left alone. */
+.podcast-body > .btn,
+.podcast-body > .ticker-affordance {
+  align-self: flex-start;
+  flex: 0 0 auto;
+}
+
+.podcast-body > audio {
+  flex: 0 0 auto;
+}
+
+/* --- Episode length, a segmented control -------------------------------------------------------
+   Asked at generation time because that is when a reader has an opinion, and because changing your
+   mind afterwards costs a full model run plus synthesis. */
+
+.podcast-length {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 0 auto;
+  margin-bottom: 0.5rem;
+  font-size: 0.74rem;
+}
+
+.podcast-length-label {
+  color: var(--text-faint);
+  margin-right: 0.15rem;
+}
+
+.length-opt {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+/* Hover and active own DISJOINT properties: hover takes the border, active takes the fill, so
+   pointing at the option already chosen still gives feedback (invariant 44's collision). */
+.length-opt:hover {
+  border-color: var(--accent);
+}
+
+.length-opt.is-active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* The dot has no text box of its own, so top-alignment puts it above the first line's x-height. */
+.run-status .run-dot {
+  margin-top: 0.42em;
+}
+
+
+/* --- Scrollbars ---------------------------------------------------------------------------------
+   The UA scrollbar is painted from the OS theme, not the page's, so on the dark theme every
+   scroller here showed a near-white track with a grey thumb — a bright vertical bar down the middle
+   of the app, reported from a screenshot. Both spellings are needed and they are NOT alternatives:
+   `scrollbar-color`/`-width` is the standard (Firefox, and Chromium 121+), `::-webkit-scrollbar` is
+   what Safari and older Chromium read, and neither covers the other's browsers.
+
+   Deliberately an OVERLAY look — a transparent track and a thumb inset by a transparent border with
+   `background-clip: padding-box` — so a scroller gains no visible chrome when it has nothing to
+   scroll, and the gutter width stops mattering to the layout. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+  background-clip: padding-box;
+}
+
+/* The corner where two scrollbars meet: without this it paints the UA's own colour and reappears as
+   a bright square in the bottom-right of any box that scrolls both ways. */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Why a reference says "unverified", where a reader who wants to know is already looking. The
+   badge in the row is a label; this is the sentence. Deliberately NOT a tooltip: `.col` is
+   `overflow-y: auto` and would clip one anchored this deep (invariant 54's ancestor case). */
+.ref-card-why {
+  margin: 0 0 0.4rem;
+  padding: 0.4rem 0.5rem;
+  border-left: 2px solid var(--bad);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: color-mix(in oklch, var(--bad) 10%, var(--surface-1));
+  color: var(--text-dim);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+/* The server's own reason string — a coordinate and the locators that DO exist. Diagnostic rather
+   than prose, so it is set apart from the sentence above rather than blended into it. */
+.ref-card-why-detail {
+  margin: -0.2rem 0 0.5rem;
+  padding: 0 0.5rem;
+  color: var(--text-faint);
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* The quote the reader actually clicked, among the several a repeatedly-cited source carries.
+   Owns `border-color` + a bar; `.reference-quote` itself owns background, so the two never fight
+   over one property (the collision invariants 44 and 58 both record). */
+.reference-quote.is-wanted {
+  border-color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* --- Trajectory drawer --------------------------------------------------------------------------
+   Ported from a sibling project's own trajectory drawer, structure and proportions included —
+   a first pass kept its DATA MODEL faithfully and then invented a cramped presentation for it
+   (0.75rem rows, a 0.85rem-tall bar strip), which a user compared side by side and rejected. The
+   information was all there and none of it was legible.
+
+   Every `hidden`-toggled class here pairs its author `display` with a LONGER `[hidden]` selector,
+   so the guard wins on specificity regardless of source order (invariant 36). */
+.traj-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: oklch(0% 0 0 / 0.5);
+  opacity: 0;
+  /* NOT decoration: `closeTrajectory` sets `hidden` only after the 280ms slide-out, so without this
+     the backdrop stays full-viewport and hit-testable for that window and eats the next click. */
+  pointer-events: none;
+  transition: opacity 260ms ease;
+}
+
+.traj-backdrop.is-shown {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.traj-backdrop[hidden] {
+  display: none;
+}
+
+.traj-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 901;
+  height: 80vh;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px 14px;
+  background: var(--surface-1);
+  border-top: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: 0 -10px 40px oklch(0% 0 0 / 0.4);
+  transform: translateY(100%);
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A trajectory that could not be loaded is one sentence, and 80vh of empty panel around it reads
+   as a broken drawer rather than a missing trace. Sized to content instead — `height: auto` beats
+   the fixed height above on SPECIFICITY (`.traj-drawer.is-empty` is 0,2,0 against `.traj-drawer`'s
+   0,1,0), so it does not depend on staying below it in the file, and `max-height` is re-stated
+   because the rule above sets it too. NOT a `hidden` toggle, so invariant 36's tripwire does not
+   apply: the drawer is visible either way, only its height changes. */
+.traj-drawer.is-empty {
+  height: auto;
+  max-height: 40vh;
+}
+
+.traj-drawer.is-open {
+  transform: translateY(0);
+}
+
+.traj-drawer.is-full {
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+}
+
+.traj-drawer[hidden] {
+  display: none;
+}
+
+.traj-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 13px 0 11px;
+  border-bottom: 1px solid var(--border);
+}
+
+.traj-id {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+}
+
+.traj-tag {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+.traj-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.traj-stat {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.traj-pick {
+  padding: 0.15rem 0.35rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.traj-pick[hidden] {
+  display: none;
+}
+
+.traj-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Transport as ONE segmented control rather than four loose buttons — it is a single idea (move
+   through the run) and reads as one. */
+.traj-transport {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.tctl {
+  width: 34px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text-dim);
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.tctl:last-child {
+  border-right: none;
+}
+
+.tctl:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--surface-3);
+}
+
+.tctl:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tctl-speed {
+  width: auto;
+  padding: 0 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.traj-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.9rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+}
+
+.traj-icon:hover {
+  color: var(--text);
+}
+
+.traj-x:hover {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+/* A labelled callout, not a stray sentence: the tag says WHICH case holds and the body says what
+   that means for the numbers below it. */
+/* The two notes SIDE BY SIDE rather than stacked — two full-width rows of one short sentence each
+   pushed the strip down for no information (reported). They stay two ELEMENTS: the budget note
+   turns red on a truncation and the timing note never does, and that separation is the one thing
+   the colours exist for, so merging the text into one row would cost it. */
+.traj-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 9px 0 2px;
+}
+
+/* Pre-emptive pairing, the same one `.btn` carries: an author `display` on a class anyone might
+   later `hidden`-toggle outranks the UA rule and the element stays visible (invariant 36). */
+.traj-notes[hidden] {
+  display: none;
+}
+
+/* Both notes hidden is no ROW at all — otherwise the container's own margins hold 11px of blank
+   above the strip, which is the space this change exists to reclaim. */
+.traj-notes:not(:has(> .traj-note:not([hidden]))) {
+  display: none;
+}
+
+.traj-notes > .traj-note {
+  /* Share the row, wrap to two lines when the drawer is narrow, and never overflow: a long
+     sentence in a flex item whose `min-width` is `auto` pushes its sibling off the row. */
+  flex: 1 1 22rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.traj-note {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 9px 0 2px;
+  padding: 8px 11px;
+  border-radius: 3px;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--text-faint);
+}
+
+.traj-note[hidden] {
+  display: none;
+}
+
+.note-tag {
+  flex-shrink: 0;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--text-faint);
+}
+
+.note-body {
+  color: var(--text-dim);
+}
+
+.traj-note.is-live {
+  border-left-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 8%, var(--surface-2));
+}
+
+.traj-note.is-live .note-tag {
+  color: var(--accent);
+}
+
+.traj-note.is-info {
+  border-left-color: var(--warn);
+}
+
+/* A run that actually hit the cap. Its own colour rather than reusing `.is-info`: "the caps were
+   rejected" and "a turn was cut off" are different facts and a reader must not have to read the
+   sentence to tell which happened. */
+.traj-note.is-cut {
+  border-left-color: var(--bad);
+}
+
+.traj-note.is-cut .note-tag {
+  color: var(--bad);
+}
+
+.traj-note.is-info .note-tag {
+  color: var(--warn);
+}
+
+/* The tool timeline. Segments TILE the run and a wide one is a slow call — but each keeps a
+   readable minimum width and the strip scrolls rather than squashing them into slivers, which is
+   what the first version did and why nothing in it could be read. */
+.traj-timeline-wrap {
+  padding: 6px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.traj-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.traj-timeline {
+  display: flex;
+  gap: 4px;
+  height: 72px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+/* Sized INLINE as `flex: <duration> 0 <floor>px` (see `renderTrajTimeline`), so a run with one
+   tool call fills the strip and a run with twenty scrolls instead of squashing. No `flex` here:
+   the inline shorthand is the whole sizing model and a competing rule would only ever fight it. */
+.seg {
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+  border: 1px solid color-mix(in oklch, var(--fam, var(--text-dim)) 40%, var(--border));
+  border-top: 3px solid var(--fam, var(--text-dim));
+  background: color-mix(in oklch, var(--fam, var(--text-dim)) 11%, var(--surface-2));
+  border-radius: 2px 2px 0 0;
+  color: var(--text-dim);
+  transition: background 120ms ease;
+}
+
+.seg:hover {
+  background: color-mix(in oklch, var(--fam, var(--text-dim)) 20%, var(--surface-2));
+}
+
+.seg.is-current {
+  background: color-mix(in oklch, var(--fam, var(--text-dim)) 28%, var(--surface-2));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--fam, var(--text-dim));
+}
+
+/* Every line in a segment declares its own `line-height`, and that is arithmetic rather than
+   taste. Left to the browser's ~1.5 default these three lines plus their gaps and padding measured
+   74.3px inside a 72px box, so `.seg`'s own `overflow: hidden` sliced the MIDDLE one in half —
+   which is precisely the label. Reported from a screenshot showing "skill corpus-navigation" cut
+   through the letterforms. At 1.25/1.3/1.3 the same content measures 66.7px, leaving 5.3px spare;
+   the height is the constraint, so the lines have to be told what they cost. (An earlier version of
+   this comment said 64.6px — the fix was right and the arithmetic beside it was not, which a
+   fact-check caught by recomputing it from these very values.) */
+.seg-ic {
+  font-size: 0.8rem;
+  line-height: 1.25;
+  color: var(--fam, var(--text-dim));
+}
+
+.seg-lab {
+  font-size: 0.74rem;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.seg-dur {
+  font-size: 0.64rem;
+  line-height: 1.3;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "from here = Turn N" between turn groups, so the tool strip and the turn nav are one story. */
+.turn-mark {
+  flex: 0 0 auto;
+  align-self: stretch;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-faint);
+  font-size: 0.58rem;
+}
+
+.turn-mark:hover {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+.tm-arrow {
+  font-size: 0.6rem;
+  opacity: 0.7;
+}
+
+.traj-empty {
+  padding: 14px 0;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+.traj-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 226px minmax(0, 1fr);
+  gap: 16px;
+  padding-top: 12px;
+}
+
+.traj-nav {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.traj-search-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.traj-search {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  border-radius: 3px;
+  font-size: 0.74rem;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.traj-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.traj-search-count {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.traj-steps {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-right: 4px;
+}
+
+/* A CARD per turn: its name, a line of what it was thinking, its duration, and a bar whose width is
+   that duration against the longest — so the slow turn is findable by eye. */
+.tstep {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  color: var(--text-dim);
+  font: inherit;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.tstep:hover {
+  background: var(--surface-3);
+}
+
+/* Current owns the left bar + background; a search match owns the OUTLINE. Disjoint properties, so
+   a matching current step shows both instead of one silently winning (invariants 44 and 58). */
+.tstep.is-current {
+  border-left-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 14%, var(--surface-2));
+  color: var(--text);
+}
+
+.tstep.is-match {
+  outline: 1px solid var(--accent-dim);
+  outline-offset: -1px;
+}
+
+.tstep-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.tstep-preview {
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tstep-dur {
+  font-size: 0.66rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.tstep-bar {
+  height: 3px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: var(--accent-dim);
+}
+
+.traj-detail {
+  overflow-y: auto;
+  padding: 2px 4px 8px 2px;
+}
+
+.det-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+.det-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.det-sub {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The model's own words, set as PROSE with a quote rule — not as another monospace dump. It is the
+   one thing in this drawer a person reads rather than scans. */
+.det-reason {
+  margin-bottom: 14px;
+  padding-left: 11px;
+  border-left: 2px solid var(--border-strong);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ini-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.ini-chip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.ini-chip b {
+  color: var(--accent);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+}
+
+.det-field {
+  margin-bottom: 12px;
+}
+
+.det-field-name {
+  margin-bottom: 4px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.det-field-body {
+  padding: 9px 11px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 26rem;
+  overflow: auto;
+}
+
+@media (max-width: 860px) {
+  .traj-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 9rem minmax(0, 1fr);
+  }
+}
+
+/* Regenerate is offered on the LAST turn only. Every later answer was produced with this one in
+   its `history` (invariant 11), so redoing a turn in the middle would leave the answers after it
+   derived from a conversation that no longer exists.
+
+   A stylesheet rule rather than a flag passed into `renderTurn`, because turns reach the DOM
+   through two paths — `rebuildHistory` and the `chat:turnAdded` replay — and a rule that reads the
+   DOM is right for both without either having to remember. The same mechanism `.turn-followups`
+   already uses, and it hides the control while a question is pending for free, since the pending
+   row is appended last. */
+.turn-regenerate {
+  display: inline-block;
+  margin-top: 0.35rem;
+}
+
+.turn:not(:last-child) .turn-regenerate {
+  display: none;
+}
+
+/* `.turn-answer.is-pending` is the row of a question still running: its own turn is last, and
+   offering to redo an answer that does not exist yet is nonsense. */
+.turn-answer.is-pending .turn-regenerate {
+  display: none;
+}
+
+/* An answer's own footer controls — the steps pill and Regenerate — sit at the LEFT edge of a
+   chat turn, and the default tip anchors `right: 0`, so a 15rem panel extends LEFTWARD off the
+   edge. `.chat-history` is `overflow-y: auto`, which computes `overflow-x` to `auto` as well, and
+   the tip was clipped down its left side. Photographed by a user: "開啟這次執行的軌跡" arriving as
+   "執行的軌跡".
+
+   Anchoring LEFT is the fix and the precedent is already in this file (`.src-flags`, same
+   sentence): the tip opens into the space the control actually has. Removing the tips was the
+   first instinct and the wrong one — invariant 54's ancestor case cannot always be fixed, but when
+   the clipping is HORIZONTAL and the control is at the left edge, it always can. */
+.ticker-toggle[data-tip]::after,
+.turn-regenerate [data-tip]::after {
+  left: 0;
+  right: auto;
+}
+
+.ticker-toggle[data-tip]::before,
+.turn-regenerate [data-tip]::before {
+  left: 1rem;
+  right: auto;
+}
+
+/* The chat panel's head carries one action now, so it becomes a row. Quiet and pushed right: it is
+   destructive and nobody opens a notebook in order to use it. */
+.panel-head:has(.panel-head-action) {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.panel-head-action {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: color 120ms ease;
+}
+
+.panel-head-action:hover:not(:disabled) {
+  color: var(--bad);
+}
+
+.panel-head-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.panel-head-action[hidden] {
+  display: none;
+}
+
+/* Anchored right, matching the button's own edge — it is the last thing in the row. */
+.panel-head-action[data-tip]::after {
+  right: 0;
+  left: auto;
+}
+
+/* The way back from a tool segment to the turn that made the call. Its own top margin because it
+   is the last thing in the pane and must not sit flush against the field above it. */
+.det-jump {
+  margin-top: 0.9rem;
+  font-size: 0.82rem;
+}
+
+/* The replay's progress through the stop it is dwelling on. Without it, watching a seven-second
+   turn is indistinguishable from a frozen panel. */
+.traj-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 9px 0 0;
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+/* The pairing invariant 36 requires for any author `display` on a `hidden`-toggled class. */
+.traj-progress[hidden] {
+  display: none;
+}
+
+.tp-label {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-track {
+  flex: 1 1 auto;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in oklch, var(--accent) 18%, var(--surface-2));
+  overflow: hidden;
+}
+
+.tp-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+}

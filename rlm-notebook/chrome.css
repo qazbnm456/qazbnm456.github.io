@@ -1,0 +1,204 @@
+/* rlm-notebook PLAYGROUND — chrome only.
+ *
+ * Uses the application's OWN custom properties (`--surface-*`, `--border`, `--text*`, `--accent`,
+ * `--ok`, `--radius*`), so both themes and any future palette change are inherited rather than
+ * duplicated. Nothing here restyles a product class; the playground adds furniture beside the app,
+ * it does not reach into it.
+ */
+
+/* Every `hidden`-toggled element gets a `[hidden]` rule ONE TOKEN LONGER than its visible rule, so
+ * it wins on specificity regardless of source order. `hidden` works through the UA stylesheet's
+ * `[hidden] { display: none }`, which ANY author `display` outranks — this project has shipped that
+ * bug twice, once leaving an `inset: 0` overlay swallowing every click on the page. */
+
+/* --- header ------------------------------------------------------------------------------------ */
+.pg-wordmark-tag {
+  margin-left: 7px; padding: 2px 6px;
+  border: 1px solid var(--accent); border-radius: 999px;
+  color: var(--accent); font-size: 9.5px; font-weight: 700; letter-spacing: 0.12em;
+  vertical-align: 2px;
+}
+.pg-sim {
+  /* NOT `margin-left: auto` — `.header-actions` already sets that on itself, and a second one here
+     fought it. Height matched to `.header-btn` so the whole row shares one baseline. */
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  height: 32px; padding: 0 11px;
+  border: 1px solid var(--border-strong); border-radius: 999px;
+  background: var(--surface-2); color: var(--text-dim);
+  font-size: 11px; letter-spacing: 0.09em; font-weight: 600; white-space: nowrap;
+}
+.pg-sim-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--warn);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--warn) 22%, transparent);
+}
+/* `.header-btn` is a 32x32 SQUARE built for single-glyph icons. Text buttons inherit that and
+   collapse on top of each other — the header rendered as "SIMULATEDNoteBestartInsta GitHu".
+   Anything with a word in it has to opt back out of the fixed box. */
+/* Matches `.header-btn` in every dimension that shows: same 32px height, same radius, border,
+   background and transition. ONLY the fixed 32px WIDTH is opted out of, because these carry words.
+   At 28px they sat a few pixels short of the ⚙ and ◐ beside them and the row read as two designs. */
+.pg-btn {
+  width: auto;
+  height: 32px;
+  padding: 0 11px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  gap: 5px;
+}
+/* Hover owns `background`; focus owns `border-color`. Disjoint properties, so hovering one control
+ * can never wipe the focus ring on another — the same fix invariant 58 records. */
+.pg-btn:hover { background: var(--surface-3); }
+.pg-btn:focus-visible { border-color: var(--accent); }
+.pg-btn-primary { border-color: var(--accent); color: var(--accent); }
+/* Any chrome button that is an ANCHOR, not the star alone. Install became a link to the README's
+   own section and duly grew a browser underline under its label. */
+a.pg-btn { text-decoration: none; color: inherit; display: inline-flex; align-items: center; }
+
+/* No modal section any more: the scenario picker was the product's own notebook dropdown all along,
+   and the install sheet was a copy of the README. Both are deleted, and so is the `modal()` helper
+   that built them, so `.pg-overlay` also leaves the pointer-events opt-in list below. */
+/* The body is a scroller, so the foot needs a rule between them: without one the last row runs
+   under the Close button and reads as clipped rather than scrolled. */
+
+/* The scenario picker's own styles are GONE with it. The product's notebook dropdown does the job,
+   so there is nothing here to style and nothing here to break: two heading rules were lost as
+   collateral from one edit inside this block, and the block that replaced them was the third
+   attempt at a surface the product already had. */
+.pg-audio-note {
+  margin-bottom: 10px; padding: 8px 10px;
+  border: 1px solid var(--border); border-left: 2px solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text-dim);
+  font-size: 12px; line-height: 1.55;
+}
+
+
+/* --- guided demo panel + driver.js popover ------------------------------------------------------ */
+/* ABOVE driver.js's overlay, which sits at z-index 1000000000. Below it the panel rendered but was
+   inert: no text selection, no button clicks, because the overlay swallowed every event. */
+/* BELOW driver.js's popover. `z-index: 1000000000` is on `.driver-popover`; the overlay carries no
+   z-index at all. An earlier note here said "overlay" and put the panel at 1000000002, stacking it
+   OVER the popover and clipping the instruction the reader was meant to read. The panel still beats
+   the overlay, since a positioned element with a z-index outranks an auto one. Whether it can be
+   CLICKED is a separate question, answered by the pointer-events rules below. */
+.pg-tour {
+  position: fixed; right: 16px; bottom: 16px; z-index: 999999999;
+  width: min(340px, calc(100vw - 32px));
+  display: flex; flex-direction: column;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+  background: var(--surface-1); box-shadow: 0 18px 44px rgb(0 0 0 / 0.32);
+}
+/* Slid out of the way rather than restacked: correct stacking stops the popover being clipped, but
+   a popover sitting ON the panel still hides the progress and the controls. */
+.pg-tour.is-left { right: auto; left: 16px; }
+.pg-tour.is-top { bottom: auto; top: 72px; }
+.pg-tour.is-topleft { right: auto; left: 16px; bottom: auto; top: 72px; }
+
+.pg-tour-head {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.pg-tour-title { font-weight: 600; font-size: 13px; }
+.pg-tour-count { margin-left: auto; color: var(--text-faint); font-size: 12px; }
+.pg-tour-collapse {
+  width: 24px; height: 24px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface-2); color: var(--text-dim); cursor: pointer; line-height: 1;
+}
+.pg-bar { height: 2px; background: var(--surface-3); }
+.pg-bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 260ms ease; }
+.pg-tour-list { padding: 11px 12px; display: grid; gap: 8px; }
+.pg-tour.is-collapsed .pg-tour-list,
+.pg-tour.is-collapsed .pg-tour-foot,
+.pg-tour.is-collapsed .pg-bar { display: none; }
+.pg-tour-foot {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding: 0 12px 11px;
+}
+.pg-step-title { font-size: 13px; font-weight: 600; }
+.pg-tour-list p { margin: 0; color: var(--text-dim); font-size: 12px; line-height: 1.6; }
+.pg-step-body { margin: 0; color: var(--text-dim); font-size: 12px; line-height: 1.6; }
+.pg-tour-list p[hidden] { display: none !important; }
+.pg-step-hint { color: var(--accent); font-size: 11.5px; min-height: 1em; }
+.pg-done { color: var(--ok) !important; }
+.pg-step-btn { padding: 3px 9px; font-size: 11.5px; white-space: nowrap; }
+
+/* driver.js ships its own light theme; these map it onto the app's tokens so the popover belongs to
+ * the same product in both themes. Class names are driver.js's own API surface (`popoverClass`). */
+.driver-popover.pg-pop {
+  background: var(--surface-1); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.3);
+  max-width: 340px;
+}
+.driver-popover.pg-pop .driver-popover-title { color: var(--text); font-size: 13.5px; }
+.driver-popover.pg-pop .driver-popover-description {
+  color: var(--text-dim); font-size: 12.5px; line-height: 1.6;
+}
+/* THE ARROW NEEDS A BORDER TOO. driver draws one bare triangle (`border: 5px solid`), and against a
+   popover that HAS a 1px border that reads as a naked triangle stuck to the side of the box rather
+   than part of it. A bordered bubble needs two triangles: an outer one in the border colour, and an
+   inner one in the surface colour nudged 1.5px back toward the popover so only a rim of the outer
+   shows. `::after` is free here — driver puts no content in the arrow. */
+.driver-popover.pg-pop .driver-popover-arrow { border-width: 9px; }
+.driver-popover.pg-pop .driver-popover-arrow::after {
+  content: "";
+  position: absolute;
+  border: 9px solid transparent;
+}
+/* Each side names the ONE edge that is visible (the other three are transparent, set by driver) and
+   places the inner triangle against it. */
+.driver-popover.pg-pop .driver-popover-arrow-side-top { border-top-color: var(--border-strong); }
+.driver-popover.pg-pop .driver-popover-arrow-side-top::after {
+  border-top-color: var(--surface-1); left: -9px; top: -10.5px;
+}
+.driver-popover.pg-pop .driver-popover-arrow-side-bottom { border-bottom-color: var(--border-strong); }
+.driver-popover.pg-pop .driver-popover-arrow-side-bottom::after {
+  border-bottom-color: var(--surface-1); left: -9px; bottom: -10.5px;
+}
+.driver-popover.pg-pop .driver-popover-arrow-side-left { border-left-color: var(--border-strong); }
+.driver-popover.pg-pop .driver-popover-arrow-side-left::after {
+  border-left-color: var(--surface-1); top: -9px; left: -10.5px;
+}
+.driver-popover.pg-pop .driver-popover-arrow-side-right { border-right-color: var(--border-strong); }
+.driver-popover.pg-pop .driver-popover-arrow-side-right::after {
+  border-right-color: var(--surface-1); top: -9px; right: -10.5px;
+}
+/* The spotlit control MUST stay clickable: the reader is being asked to press it. driver.js cuts a
+ * hole in its own overlay; this only makes sure nothing of ours is stacked over that hole. */
+.driver-active-element { z-index: 10000; }
+
+/* THE PLAYGROUND'S OWN CHROME HAS TO OPT BACK IN. driver.js does not block clicks with an overlay
+ * that sits on top; it does it in CSS:
+ *
+ *     .driver-active * { pointer-events: none }
+ *     .driver-active .driver-active-element, .driver-popover { pointer-events: auto }
+ *
+ * so EVERY element on the page is inert except the spotlit control and driver's own popover. The
+ * guided panel is neither, which is why its buttons did nothing and its text could not be selected.
+ * Raising z-index did not help and never could have: nothing was covering it.
+ *
+ * The selectors below are TWO tokens where driver's is one class plus the universal selector, so
+ * they win on specificity regardless of source order — the same reasoning invariant 36 records for
+ * `[hidden]` guards in the product's own stylesheet. */
+.driver-active .pg-tour,
+.driver-active .pg-tour *,
+.driver-active .pg-foot,
+.driver-active .pg-foot * {
+  pointer-events: auto;
+}
+
+/* --- footer note --------------------------------------------------------------------------------- */
+.pg-foot {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  padding: 10px 16px; border-top: 1px solid var(--border);
+  background: var(--surface-1); color: var(--text-faint);
+  font-size: 11.5px; text-align: center;
+}
+.pg-foot a { color: var(--accent); text-decoration: none; }
+.pg-foot a:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .pg-tour { right: 8px; bottom: 8px; width: calc(100vw - 16px); max-height: 44vh; }
+  .pg-sim { display: none; }
+}

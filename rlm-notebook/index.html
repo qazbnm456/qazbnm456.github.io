@@ -1,0 +1,282 @@
+<title>rlm-notebook — interactive playground</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="./style.css" />
+<link rel="stylesheet" href="./driver.css" />
+<link rel="stylesheet" href="./chrome.css" />
+
+<div class="layout">
+  <header class="header">
+    <button type="button" id="new-notebook" class="wordmark" aria-label="Start a new notebook" data-i18n-title="app.newNotebook" title="Start a new notebook">rlm-notebook</button>
+
+    <!-- The notebook is reached by its TITLE. The id is an internal handle (invariant 37) and was
+         previously the only way in — a bare text box plus a datalist of `id (N sources, M turns)`,
+         which put the handle and some metadata nobody asked for in front of the name. -->
+    <div class="notebook-picker">
+      <button type="button" class="notebook-current" id="notebook-current"
+              aria-haspopup="listbox" aria-expanded="false"
+              data-tip="Switch notebook, rename, or start a new one"
+              data-i18n-tip="app.pickerTip">
+        <span class="notebook-current-title" id="notebook-title" data-i18n="app.noNotebook">No notebook yet</span>
+        <span class="notebook-run-dot" id="notebook-run-dot" aria-hidden="true" hidden></span>
+        <span class="notebook-caret" aria-hidden="true">▾</span>
+      </button>
+      <div class="notebook-menu" id="notebook-menu" hidden role="listbox"></div>
+    </div>
+
+    <div class="header-actions">
+    <button id="settings-open" class="header-btn" aria-label="Settings"
+            data-i18n-tip="app.settings" data-tip="Settings">⚙︎</button>
+
+    <button id="theme-toggle" class="header-btn" aria-label="Toggle theme"
+            data-i18n-tip="app.theme" data-tip="Toggle Paper / Study theme">
+      ◐
+    </button>
+    </div>
+  </header>
+
+  <main class="cols" id="cols">
+    <section class="col col-sources" id="col-sources">
+      <div class="panel-head" data-i18n="sources.head">Sources</div>
+
+      <form id="add-source-form" class="add-source">
+        <div class="tabs" id="source-kind-tabs">
+          <button type="button" class="tab is-active" data-kind="url" data-i18n="sources.tab.url">URL</button>
+          <button type="button" class="tab" data-kind="text" data-i18n="sources.tab.text">Paste text</button>
+          <button type="button" class="tab" data-kind="file" data-i18n="sources.tab.file">File</button>
+        </div>
+
+        <div class="tab-body" data-kind-body="url">
+          <input type="url" id="source-url" placeholder="https://…" />
+          <p class="hint" data-i18n="sources.url.hint">A web page, or a YouTube link — captions only, never the video/audio itself.</p>
+        </div>
+        <div class="tab-body" data-kind-body="text" hidden>
+          <textarea id="source-text" rows="4" placeholder="Paste text to ingest…" data-i18n-placeholder="sources.text.placeholder"></textarea>
+        </div>
+        <div class="tab-body" data-kind-body="file" hidden>
+          <input type="file" id="source-file" accept=".pdf,.txt,.md" />
+          <p class="hint" data-i18n="sources.file.hint">PDF, TXT, or Markdown — one file per upload.</p>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" data-i18n="sources.add">Add source</button>
+      </form>
+
+      <ul class="source-list" id="source-list"></ul>
+      <p class="empty-note" id="sources-empty" data-i18n="sources.empty">No sources yet. Add one above.</p>
+    </section>
+
+    <section class="col col-chat" id="col-chat">
+      <div class="panel-head">
+        <span data-i18n="chat.head">Chat</span>
+        <button type="button" class="panel-head-action" id="chat-clear" hidden
+                data-i18n="chat.clear" data-i18n-tip="chat.clearTip"
+                data-tip="Delete every question and answer in this notebook. Sources, notes and
+                          the overview are kept.">Clear conversation</button>
+      </div>
+
+      <div class="chat-history" id="chat-history">
+        <!-- The overview lives INSIDE the scrolling thread, as its first entry. It used to be a
+             sibling above it, `flex: 0 0 auto` with `max-height: 45%`, which permanently ate half
+             the chat column and squeezed the conversation into a strip — reported as the overview
+             covering the conversation. Everything that rebuilds this list goes through
+             `rebuildHistory`, which re-appends this node; that is what the old structure was
+             avoiding, and it is three lines. -->
+        <div class="chat-overview" id="chat-overview" hidden></div>
+        <p class="empty-note" id="chat-empty" data-i18n="chat.empty">Ask a question once you've added a source.</p>
+      </div>
+
+      <!-- The whole box is the field. The textarea has no chrome of its own; the surrounding form
+           carries the border and the focus ring, and the hint sits on its OWN row underneath, so
+           the Enter affordance can never overlap what someone is typing. Same structure Claude.ai,
+           ChatGPT and Slack all use, for that reason. -->
+      <form id="ask-form" class="ask-form">
+        <textarea id="ask-input" rows="1" placeholder="Ask a grounded question…" data-i18n-placeholder="chat.placeholder"></textarea>
+        <div class="ask-foot">
+          <span class="ask-hint">
+            <kbd class="keycap">⏎</kbd>
+            <span data-i18n="chat.enterHint">to send</span>
+            <span class="ask-hint-sep">·</span>
+            <kbd class="keycap">⇧⏎</kbd>
+            <span data-i18n="chat.newlineHint">for a new line</span>
+          </span>
+          <button type="submit" class="ask-send" id="ask-submit" aria-label="Ask">
+            <span aria-hidden="true">↑</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- The right rail is FOUR views behind one switcher, and it collapses to a rail of icons.
+         It used to be three stacked sections in one scrolling column: Studio, then Podcast, then
+         Notes, each with its own heading and its own body, so a notebook with a generated guide and
+         an episode and a few notes was a column nobody could find anything in. Views also make room
+         for a fourth, References, which had nowhere to live before. -->
+    <section class="col col-studio" id="col-studio">
+      <!-- Grab-and-drag the edge to size this panel, exactly as `cloud.projectdiscovery.io` does:
+           the grip stays put when the panel is collapsed, so it can be dragged back out. A width the
+           reader chose beats one of two states somebody else picked for them. -->
+      <div class="studio-resize" id="studio-resize" role="separator" aria-orientation="vertical"
+           aria-label="Resize panel" tabindex="0"><span class="studio-grip" aria-hidden="true">⣿</span></div>
+      <div class="studio-bar">
+        <div class="studio-views" id="studio-views" role="tablist">
+          <button type="button" class="studio-view-tab is-active" data-view="studio" role="tab"
+                  data-i18n-tip="studio.sub" data-tip="Things made FROM your sources. Nothing here runs until you ask it to."><span class="tab-icon" aria-hidden="true">✦︎</span><span class="tab-label" data-i18n="studio.head">Studio</span></button>
+          <button type="button" class="studio-view-tab" data-view="podcast" role="tab"
+                  data-i18n-tip="podcast.sub" data-tip="Two hosts discuss your sources, as an episode you can play or download."><span class="tab-icon" aria-hidden="true">♪︎</span><span class="tab-label" data-i18n="podcast.head">Podcast</span></button>
+          <button type="button" class="studio-view-tab" data-view="references" role="tab"
+                  data-i18n-tip="references.sub" data-tip="Every passage cited anywhere in this notebook, in one place."><span class="tab-icon" aria-hidden="true">❞︎</span><span class="tab-label" data-i18n="references.head">References</span></button>
+          <button type="button" class="studio-view-tab" data-view="notes" role="tab"
+                  data-i18n-tip="notes.sub" data-tip="Your own scratchpad. A note can be promoted into a citable source."><span class="tab-icon" aria-hidden="true">✎︎</span><span class="tab-label" data-i18n="notes.head">Notes</span></button>
+        </div>
+      </div>
+
+      <div class="studio-view" data-view-body="studio">
+      <p class="panel-sub" data-i18n="studio.sub">Things made FROM your sources. Nothing here runs until you ask it to.</p>
+      <!-- Every tab explains itself on hover rather than spending rail space on a paragraph — the
+           same `data-tip` treatment `toolscout`/`cve-reverser` use for their own controls. -->
+      <div class="guide-tabs" id="guide-tabs">
+        <button type="button" class="tab is-active" data-i18n="studio.tab.summary" data-i18n-tip="studio.tip.summary" data-guide-kind="summary"
+                data-tip="A few paragraphs covering what all your sources say, with citations you can check.">Summary</button>
+        <button type="button" class="tab" data-i18n="studio.tab.faq" data-i18n-tip="studio.tip.faq" data-guide-kind="faq"
+                data-tip="The questions your sources actually answer, each with its answer and a citation.">FAQ</button>
+        <button type="button" class="tab" data-i18n="studio.tab.timeline" data-i18n-tip="studio.tip.timeline" data-guide-kind="timeline"
+                data-tip="Dated events pulled out of your sources and put in order.">Timeline</button>
+        <button type="button" class="tab" data-i18n="studio.tab.insight" data-i18n-tip="studio.tip.insight" data-guide-kind="insight"
+                data-tip="The single most important takeaway, in one sentence.">Insight</button>
+      </div>
+      <button type="button" class="btn guide-regenerate" id="guide-regenerate" hidden
+              data-i18n="studio.regenerate" data-i18n-tip="studio.regenerateTip"
+              data-tip="Run this one again from your current sources.">↻ Regenerate</button>
+      <div class="guide-body" id="guide-body"></div>
+
+      </div>
+
+      <div class="studio-view" data-view-body="podcast" hidden>
+      <div class="podcast-section">
+        <div class="panel-head" data-i18n="podcast.head">Podcast</div>
+        <p class="panel-sub" data-i18n="podcast.sub">Two hosts discuss your sources, as an episode you can play or download.</p>
+        <!-- Chosen AT generation time, not in Settings: this is the moment a reader has an opinion
+             about how long they want to listen, and it costs a full model run plus synthesis to
+             change your mind afterwards. NotebookLM asks at the same point. -->
+        <div class="podcast-length" role="group" data-i18n-tip="podcast.lengthTip"
+             data-tip="How long an episode to aim for. Longer costs a longer model run and a longer synthesis.">
+          <span class="podcast-length-label" data-i18n="podcast.length">Length</span>
+          <button type="button" class="length-opt" data-length="short" data-i18n="podcast.lenShort">Short</button>
+          <button type="button" class="length-opt is-active" data-length="default" data-i18n="podcast.lenDefault">Default</button>
+          <button type="button" class="length-opt" data-length="long" data-i18n="podcast.lenLong">Long</button>
+        </div>
+        <button type="button" class="btn btn-primary btn-block" id="podcast-generate"
+                data-i18n-tip="podcast.generateTip"
+                data-tip="Writes a two-host script grounded in your sources, then synthesizes it. This is the slowest operation here."
+                data-i18n="podcast.generate">Generate podcast</button>
+        <div class="podcast-body" id="podcast-body"></div>
+      </div>
+      </div>
+
+      <div class="studio-view" data-view-body="references" hidden>
+        <p class="panel-sub" data-i18n="references.sub">Every passage cited anywhere in this notebook, in one place.</p>
+        <div class="reference-view" id="reference-view"></div>
+        <p class="empty-note" id="references-empty" data-i18n="references.empty">Nothing cited yet. Ask a question or generate an overview.</p>
+      </div>
+
+      <div class="studio-view" data-view-body="notes" hidden>
+      <div class="notes-section">
+        <div class="panel-head" data-i18n="notes.head">Notes</div>
+        <p class="panel-sub" data-i18n="notes.sub">Your own scratchpad. Save an answer from Chat with "+ Save as note", then promote a note to turn it into a source later questions can cite.</p>
+        <form id="add-note-form" class="add-note">
+          <textarea id="note-text" rows="3" placeholder="Write a note…" data-i18n-placeholder="notes.placeholder"></textarea>
+          <button type="submit" class="btn btn-primary btn-block" data-i18n="notes.add">Add note</button>
+        </form>
+        <ul class="note-list" id="note-list"></ul>
+        <p class="empty-note" id="notes-empty" data-i18n="notes.empty">No notes yet.</p>
+      </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- A SECOND overlay, reusing the `.modal-overlay` CLASS but never the source viewer's element:
+       that one owns `sourceViewerAbort`/`closeSourceViewer` and writes into #source-viewer-title
+       and #source-viewer-body. Markup here (not createElement) and toggled with `.hidden =`, which
+       is what makes tests/test_web_assets.py's extraction see it — invariant 36. -->
+  <div class="modal-overlay" id="settings-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-head">
+        <div id="settings-title" class="modal-title" data-i18n="settings.head">Settings</div>
+        <button type="button" class="modal-close" id="settings-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="settings-body"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="source-viewer-overlay" hidden>
+    <div class="modal" id="source-viewer-modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div id="source-viewer-title"></div>
+        <button type="button" class="modal-close" id="source-viewer-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="source-viewer-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Trajectory: a bottom sheet replaying one RLM run — a sibling project's own shape,
+     brought here because the inline step log put the model's own reasoning prose inside the chat
+     bubble, where a user reported it as unreadable and space-consuming. Two synchronized views on
+     the run's two clocks (see `trajectory.py`): the LEFT nav walks the planner's REPL turns, the
+     TOP strip is the tool timeline where segment width is proportional to real time. -->
+<div class="traj-backdrop" id="traj-backdrop" hidden></div>
+<div class="traj-drawer" id="traj-drawer" role="dialog" aria-modal="true"
+     aria-label="Run trajectory" hidden>
+  <div class="traj-head">
+    <span class="traj-id">
+      <span class="traj-tag" data-i18n="traj.title">Trajectory</span>
+      <span class="traj-name" id="traj-name"></span>
+    </span>
+    <span class="traj-stat" id="traj-stat"></span>
+    <select class="traj-pick" id="traj-run" aria-label="Run"></select>
+    <span class="traj-tools">
+      <span class="traj-transport">
+        <button type="button" class="tctl" id="traj-prev" data-tip="Previous step">⏮</button>
+        <button type="button" class="tctl" id="traj-play" data-tip="Replay at the run's real pace">▶</button>
+        <button type="button" class="tctl" id="traj-next" data-tip="Next step">⏭</button>
+        <button type="button" class="tctl tctl-speed" id="traj-speed" data-tip="Replay speed">2×</button>
+      </span>
+      <button type="button" class="traj-icon" id="traj-expand" data-tip="Expand">⤢</button>
+      <button type="button" class="traj-icon traj-x" id="traj-close" aria-label="Close">✕</button>
+    </span>
+  </div>
+  <div class="traj-progress" id="traj-progress" hidden>
+    <span class="tp-label"></span>
+    <span class="tp-track"><span class="tp-fill"></span></span>
+  </div>
+  <div class="traj-notes">
+    <div class="traj-note" id="traj-note" hidden></div>
+    <div class="traj-note" id="traj-budget" hidden></div>
+  </div>
+  <div class="traj-timeline-wrap">
+    <div class="traj-axis">
+      <span data-i18n="traj.start">START</span>
+      <span id="traj-axis-end"></span>
+    </div>
+    <div class="traj-timeline" id="traj-timeline"></div>
+  </div>
+  <div class="traj-main">
+    <div class="traj-nav">
+      <div class="traj-search-wrap">
+        <input type="search" class="traj-search" id="traj-search"
+               data-i18n-placeholder="traj.search" placeholder="search turns…">
+        <span class="traj-search-count" id="traj-search-count"></span>
+      </div>
+      <div class="traj-steps" id="traj-steps"></div>
+    </div>
+    <div class="traj-detail" id="traj-detail"></div>
+  </div>
+</div>
+
+<script src="./tour.js"></script>
+<script src="./shim.js"></script>
+<script src="./i18n.js"></script>
+<script src="./app.js"></script>
+<script src="./driver.js.iife.js"></script>
+<script src="./chrome.js"></script>
+<script src="./director.js"></script>
